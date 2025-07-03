@@ -104,13 +104,18 @@ function MemeCanvas({ selectedImage, textBoxes = [], selectedTextBoxId, onSelect
   useEffect(() => {
     if (!transformerRef.current) return;
     
-    if (selectedTextBoxId && textRefs.current[selectedTextBoxId]) {
-      transformerRef.current.nodes([textRefs.current[selectedTextBoxId]]);
-      transformerRef.current.getLayer().batchDraw();
-    } else {
-      transformerRef.current.nodes([]);
-      transformerRef.current.getLayer().batchDraw();
-    }
+    // Small delay to ensure refs are set properly after any state changes
+    const timer = setTimeout(() => {
+      if (selectedTextBoxId && textRefs.current[selectedTextBoxId]) {
+        transformerRef.current.nodes([textRefs.current[selectedTextBoxId]]);
+        transformerRef.current.getLayer().batchDraw();
+      } else {
+        transformerRef.current.nodes([]);
+        transformerRef.current.getLayer().batchDraw();
+      }
+    }, 0);
+    
+    return () => clearTimeout(timer);
   }, [selectedTextBoxId, textBoxes]);
 
   // Handle text box selection
@@ -122,17 +127,21 @@ function MemeCanvas({ selectedImage, textBoxes = [], selectedTextBoxId, onSelect
 
   // Handle stage click (deselect when clicking on empty area)
   const handleStageClick = (e) => {
-    if (e.target === e.currentTarget) {
+    // Check if the click was directly on the stage or on the layer (not on a text box)
+    if (e.target === e.target.getStage() || e.target.getClassName() === 'Layer') {
       if (onSelectTextBox) {
         onSelectTextBox(null);
       }
     }
   };
 
-  // Handle text box transformation
+  // Handle text box transformation (position, size)
   const handleTextBoxTransform = (id, newAttrs) => {
     if (onUpdateTextBox) {
-      onUpdateTextBox(id, newAttrs);
+      // Ensure the stage is redrawn after state update
+      requestAnimationFrame(() => {
+        onUpdateTextBox(id, newAttrs);
+      });
     }
   };
 
@@ -188,6 +197,8 @@ function MemeCanvas({ selectedImage, textBoxes = [], selectedTextBoxId, onSelect
               ref={stageRef}
               onClick={handleStageClick}
               onTap={handleStageClick}
+              onMouseDown={handleStageClick}
+              onTouchStart={handleStageClick}
             >
               <Layer>
                 {imageObj ? (
@@ -269,9 +280,17 @@ function MemeCanvas({ selectedImage, textBoxes = [], selectedTextBoxId, onSelect
                     }
                     return newBox;
                   }}
-                  enabledAnchors={['middle-left', 'middle-right']}
+                  enabledAnchors={['middle-left', 'middle-right', 'top-center', 'bottom-center']}
                   // Only allow horizontal scaling
                   keepRatio={false}
+                  anchorSize={10}
+                  anchorCornerRadius={5}
+                  anchorStroke={'#0096FF'}
+                  anchorFill={'#FFFFFF'}
+                  anchorStrokeWidth={2}
+                  borderStroke={'#0096FF'}
+                  borderStrokeWidth={2}
+                  rotateAnchorOffset={20}
                 />
               </Layer>
             </Stage>
