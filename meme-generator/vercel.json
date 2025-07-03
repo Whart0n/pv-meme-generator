@@ -1,6 +1,0 @@
-{
-  "env": {
-    "REACT_APP_API_URL": "https://server-ten-fawn.vercel.app"
-  },
-  "buildCommand": "npm install && npm run build"
-}
