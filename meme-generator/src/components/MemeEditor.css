@@ -1,0 +1,19 @@
+.editor-wrapper {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.toolbar {
+  margin-bottom: 0.5rem;
+}
+
+.toolbar button {
+  margin: 0 0.5rem;
+  padding: 0.5rem 1rem;
+}
+
+.stage-canvas {
+  border: 2px dashed #ccc;
+}
