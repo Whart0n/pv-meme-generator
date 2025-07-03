@@ -43,15 +43,13 @@ const authenticate = (req, res, next) => {
   next();
 };
 
-// Apply authentication to protected routes
-app.use('/api/upload', authenticate);
-app.use('/api/delete', authenticate);
+
 
 // Set up storage for uploaded files
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     // Store uploaded files in the meme-generator/public/memes directory
-    const uploadDir = path.join(__dirname, '../meme-generator/public/memes');
+    const uploadDir = path.join(__dirname, 'public/memes');
     
     // Create directory if it doesn't exist
     if (!fs.existsSync(uploadDir)) {
@@ -66,7 +64,7 @@ const storage = multer.diskStorage({
     const fileName = path.basename(file.originalname, fileExt);
     
     // Check if file already exists
-    const uploadDir = path.join(__dirname, '../meme-generator/public/memes');
+    const uploadDir = path.join(__dirname, 'public/memes');
     if (fs.existsSync(path.join(uploadDir, file.originalname))) {
       // Add timestamp to make filename unique
       cb(null, `${fileName}-${Date.now()}${fileExt}`);
@@ -94,7 +92,7 @@ const upload = multer({
 });
 
 // Serve static files from the meme-generator/public directory
-app.use('/memes', express.static(path.join(__dirname, '../meme-generator/public/memes')));
+app.use('/memes', express.static(path.join(__dirname, 'public/memes')));
 
 // Root route - welcome page
 app.get('/', (req, res) => {
@@ -181,7 +179,7 @@ app.get('/', (req, res) => {
 
 // API endpoint to get all meme templates
 app.get('/api/templates', (req, res) => {
-  const memesDir = path.join(__dirname, '../meme-generator/public/memes');
+  const memesDir = path.join(__dirname, 'public/memes');
   
   fs.readdir(memesDir, (err, files) => {
     if (err) {
@@ -233,7 +231,7 @@ app.post('/api/login', (req, res) => {
 });
 
 // API endpoint to upload a new meme template
-app.post('/api/upload', upload.single('memeTemplate'), (req, res) => {
+app.post('/api/upload', authenticate, upload.single('memeTemplate'), (req, res) => {
   if (req.fileValidationError) {
     return res.status(400).json({ error: req.fileValidationError });
   }
@@ -253,7 +251,7 @@ app.post('/api/upload', upload.single('memeTemplate'), (req, res) => {
 });
 
 // API endpoint to delete a meme template
-app.delete('/api/delete/:filename', (req, res) => {
+app.delete('/api/delete/:filename', authenticate, (req, res) => {
   const filename = req.params.filename;
   const filePath = path.join(__dirname, '../meme-generator/public/memes', filename);
   
