@@ -6,8 +6,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
-    "react-konva": "^9.3.0",
-    "konva": "^9.3.0",
+    "react-konva": "8.4.0",
+    "konva": "8.4.0",
     "use-image": "^2.1.1"
   },
   "scripts": {
