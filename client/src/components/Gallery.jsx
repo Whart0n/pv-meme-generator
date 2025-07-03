@@ -20,23 +20,40 @@ const memeTemplates = [
   { id: 'template-15', name: 'What if I told you', filename: 'WHAT_IF_I_TOLD_YOU.webp' }
 ];
 
-export default function Gallery({ onSelect, selectedTemplate, maxRows = 3 }) {
+// Add src property to all templates with absolute paths
+const templatesWithSrc = memeTemplates.map(template => ({
+  ...template,
+  src: `/memes/${template.filename}` // Use public folder path
+}));
+
+// Export static method to get templates from outside
+export function getTemplates() {
+  return templatesWithSrc;
+}
+
+export default function Gallery({ onSelect, selectedTemplate, maxRows = 3, onTemplatesLoaded }) {
   const [displayedTemplates, setDisplayedTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Set up all templates with their src properties
   useEffect(() => {
-    // Add the src property to each template
-    const templatesWithSrc = memeTemplates.map(template => ({
-      ...template,
-      src: `/memes/${template.filename}` // Use public folder path
-    }));
-    
+    // We already have templates with src from the static variable
     setDisplayedTemplates(templatesWithSrc);
     setLoading(false);
     
+    // Notify parent that templates are loaded
+    if (onTemplatesLoaded) {
+      onTemplatesLoaded(templatesWithSrc);
+    }
+    
+    // Preload images for better user experience
+    templatesWithSrc.forEach(template => {
+      const img = new Image();
+      img.src = template.src;
+    });
+    
     // No connection status needed since we're using local files only
-  }, []);
+  }, [onTemplatesLoaded]);
 
   // Check if template is selected
   const isTemplateSelected = (template) => {
@@ -53,7 +70,7 @@ export default function Gallery({ onSelect, selectedTemplate, maxRows = 3 }) {
   };
 
   return (
-    <div className="meme-gallery grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+    <div className="meme-gallery grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
       {loading ? (
         <div className="col-span-full text-center py-4">Loading templates...</div>
       ) : (

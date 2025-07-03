@@ -1,26 +1,30 @@
 Product Requirements Document (PRD): Custom Meme Generator1. Product OverviewProduct Name: Custom Meme Generator
 Purpose: A web-based application allowing users to select meme images from a predefined /memes/ folder, add multiple customizable text boxes, and export the result as a PNG file.
 Target Audience: Meme creators, social media users, and casual content creators seeking a simple tool to customize pre-provided meme images.
-Objective: Deliver an intuitive interface to select meme images, add custom text, and export as PNG, replicating core functionality of imgflip.com's meme generator.2. ScopeCore Functionality:Select meme images from a predefined project folder (/memes/).
-Add multiple text boxes with customizable text, font size, color, and positioning.
+Objective: Deliver an intuitive interface to select meme images, add custom text, and export as PNG, replicating core functionality of imgflip.com's meme generator.
+2. Scope
+Core Functionality:Select meme images from a predefined project folder (/memes/).
+Add multiple text boxes with customizable text, font size, select colors from a 10-color palette, and positioning.
+Add images to the canvas.
 Drag and resize text boxes on the image canvas.
 Export the final meme as a PNG file.
 
-Out of Scope:User-uploaded images (all images are pre-provided in /memes/).
+Out of Scope:
 Advanced image editing (e.g., filters, cropping, drawing).
 User accounts or cloud storage for memes.
 Social media sharing integrations.
 
-3. Features and Library OptionsImage Selection:Description: Users select JPEG or PNG images from the /memes/ folder in the project directory. A gallery or dropdown displays thumbnails for selection, and the chosen image loads onto a canvas.
+3. Features and Library Options
+Image Selection:
+Description: Users select images from the /memes/ folder in the project directory. A gallery on the top of the page displays thumbnails for selection, and the chosen image loads onto a canvas, which shows up on the left side of the screen.
 Library Options:React-Grid-Gallery or react-photo-gallery: For displaying image thumbnails in a gallery view.
-react-select or react-dropdown: For a dropdown interface if gallery is not preferred.
-fs (Node.js File System) or serve-static: For backend access to /memes/ folder.
 
-Text Box Management:Description: Add up to 10 text boxes with:Custom text input.
+Text Box Management:
+Description: Text boxes are added to the canvas on the right side of the screen. Add up to 10 text boxes with:Custom text input.
 Font selection (e.g., Impact, Arial, web-safe fonts).
 Font size (10px to 100px).
-Text color (color picker or hex code).
-Optional black/white text outline/stroke.
+Text color (pre-defined 10-color palette).
+Optional black/white text outline.
 Drag and resize text boxes.
 
 Library Options:react-draggable: For drag-and-drop text box positioning.
@@ -28,7 +32,8 @@ react-resizable: For resizing text boxes with drag handles.
 react-color: For color picker functionality.
 konva or fabric.js: For advanced canvas-based text manipulation (if HTML5 Canvas alone is insufficient).
 
-Canvas Interaction:Description: Render the selected image and text boxes on a resizable canvas (default 600x600px, adjustable to image dimensions). Maintain aspect ratio and offer optional snap-to-grid for alignment.
+Canvas Interaction:
+Description: Render the selected image and text boxes on a resizable canvas (default 600x600px, adjustable to image dimensions). Maintain aspect ratio and offer optional snap-to-grid for alignment.
 Library Options:HTML5 Canvas API: Native canvas for rendering image and text.
 konva or fabric.js: For enhanced canvas interactions (e.g., layering, drag-and-drop, scaling).
 react-grid-layout: For optional snap-to-grid functionality.
@@ -40,6 +45,7 @@ file-saver: For triggering the PNG download.
 
 User Interface:Description: Clean UI with:Image selection gallery or dropdown.
 “Add Text Box” button.
+"Add Image" button (to allow the user to upload an image to the canvas).
 Sidebar for text box properties (text, font, size, color, outline).
 Canvas preview area.
 Export button.
@@ -57,10 +63,7 @@ express-static: For serving static images from the project folder.
 Libraries: See feature-specific libraries above (react-draggable, react-resizable, html2canvas, etc.).
 Responsive design using Tailwind CSS, Bootstrap, or similar.
 
-Backend (if needed):Minimal backend (e.g., Node.js with Express) to serve images from /memes/.
-Use fs and express-static for file system access.
-
-File Handling:Support JPEG and PNG images in /memes/.
+File Handling:Support webp, JPEG and PNG images in /memes/.
 
 Browser Compatibility:Chrome, Firefox, Safari, Edge (latest versions).
 
@@ -70,29 +73,27 @@ Handle images up to 10MB without crashing.
 Dependencies:Use open-source libraries (e.g., html2canvas, react-draggable).
 Avoid external APIs (e.g., no reliance on imgflip.com).
 
-5. User FlowUser lands on the meme generator page.
-User selects a meme image from the /memes/ folder via a gallery or dropdown.
-Image is displayed on the canvas.
-User clicks “Add Text Box” to create a text box.
+5. User Flow
+User lands on the meme generator page.
+User selects a meme image from the /memes/ folder via a gallery that displays the images as thumbnails.
+Image is displayed on the canvas on the left side of the screen.
+User clicks “Add Text Box” to create a text box (this will display on the right side of the screen).
 User customizes the text box (text, font, size, color, outline) via a sidebar.
+User adds an image to the canvas by clicking the “Add Image” button (this uploaded image will display on the canvas and can be resized).
 User drags or resizes the text box.
-User repeats steps 4–6 for additional text boxes.
+User repeats steps 4–6 for additional text boxes or images (up to 3).
 User clicks “Export” to download the meme as a PNG.
 
 6. Success MetricsUsability: Create and export a meme in under 2 minutes.
 Reliability: 99% of exports produce high-quality PNGs with accurate text.
 Engagement: Users add at least 2 text boxes per meme on average.
 
-7. AssumptionsUsers are familiar with drag-and-drop interfaces.
-The /memes/ folder contains pre-provided JPEG/PNG images.
+7. Assumptions
+Users are familiar with drag-and-drop interfaces.
+The /memes/ folder contains pre-provided images.
 No server-side image processing beyond serving files.
 
 8. RisksLarge images in /memes/ may impact performance on low-end devices.
 Browser compatibility issues with canvas or drag-and-drop libraries.
 Text rendering inconsistencies across browsers.
-
-9. Future EnhancementsGIF export support.
-Predefined text box templates (e.g., top/bottom text).
-Undo/redo for text box actions.
-Categorization or tagging of images in /memes/.
 
