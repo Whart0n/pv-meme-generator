@@ -28,7 +28,9 @@ const templatesWithSrc = memeTemplates.map(template => ({
 
 // Export static method to get templates from outside
 export function getTemplates() {
-  return templatesWithSrc;
+  const localTemplates = JSON.parse(localStorage.getItem('memeTemplates') || '[]');
+  const allTemplates = [...templatesWithSrc, ...localTemplates.map((t, i) => ({ ...t, id: `local-${i}`, src: t.url }))];
+  return allTemplates;
 }
 
 export default function Gallery({ onSelect, selectedTemplate, maxRows = 3, onTemplatesLoaded }) {
@@ -37,17 +39,17 @@ export default function Gallery({ onSelect, selectedTemplate, maxRows = 3, onTem
 
   // Set up all templates with their src properties
   useEffect(() => {
-    // We already have templates with src from the static variable
-    setDisplayedTemplates(templatesWithSrc);
+    const allTemplates = getTemplates();
+    setDisplayedTemplates(allTemplates);
     setLoading(false);
     
     // Notify parent that templates are loaded
     if (onTemplatesLoaded) {
-      onTemplatesLoaded(templatesWithSrc);
+      onTemplatesLoaded(allTemplates);
     }
     
     // Preload images for better user experience
-    templatesWithSrc.forEach(template => {
+    allTemplates.forEach(template => {
       const img = new Image();
       img.src = template.src;
     });
