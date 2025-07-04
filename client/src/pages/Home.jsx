@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import '../App.css';
-import Gallery, { getTemplates } from '../components/Gallery';
+import Gallery from '../components/Gallery';
 import FabricCanvas from '../components/FabricCanvas';
 import Editor from '../components/Editor';
+import { saveAs } from 'file-saver';
 
 function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [templatesLoaded, setTemplatesLoaded] = useState(false);
   const [textBoxes, setTextBoxes] = useState([]);
   const [images, setImages] = useState([]);
   const [selectedObjectId, setSelectedObjectId] = useState(null);
@@ -16,186 +16,147 @@ function Home() {
   const handleSelectTemplate = useCallback((template) => {
     setIsLoading(true);
     setSelectedTemplate(template);
-    setSelectedObjectId(null);
     setTextBoxes([]);
     setImages([]);
+    setSelectedObjectId(null);
   }, []);
 
-  useEffect(() => {
-    if (templatesLoaded && !selectedTemplate) {
-      const templates = getTemplates();
-      if (templates.length > 0) {
-        handleSelectTemplate(templates[0]);
-      }
+  const handleTemplatesLoaded = useCallback((templates) => {
+    if (templates.length > 0) {
+      handleSelectTemplate(templates[0]);
     }
-  }, [templatesLoaded, selectedTemplate, handleSelectTemplate]);
+  }, [handleSelectTemplate]);
 
   const handleCanvasReady = useCallback(() => {
     setIsLoading(false);
   }, []);
 
-  const handleTemplatesLoaded = useCallback(() => {
-    setTemplatesLoaded(true);
-  }, []);
-
-  const handleSelectObject = useCallback((id) => {
-    setSelectedObjectId(id);
-  }, []);
-
-  const handleUpdateTextBox = useCallback((id, updatedProperties) => {
-    if (!id) return;
-    setTextBoxes(prevBoxes =>
-      prevBoxes.map(box =>
-        box.id === id ? { ...box, ...updatedProperties } : box
-      )
-    );
-  }, []);
-
-  const handleAddTextBox = useCallback(() => {
-    const newId = `text-${Date.now()}`;
+  const handleAddTextBox = () => {
     const newTextBox = {
-      id: newId,
-      text: 'Click to edit text',
-      fontSize: 40,
+      id: `text-${Date.now()}`,
+      text: 'Sample Text',
       fontFamily: 'Impact',
-      color: '#ffffff',
+      fontSize: 40,
+      color: '#FFFFFF',
       stroke: '#000000',
       strokeWidth: 2,
-      align: 'center',
       left: 50,
-      top: 100,
-      width: 250,
+      top: 50,
+      width: 200,
+      height: 100,
+      angle: 0,
       scaleX: 1,
       scaleY: 1,
-      angle: 0,
     };
-    setTextBoxes(prevBoxes => [...prevBoxes, newTextBox]);
-    setSelectedObjectId(newId);
-  }, []);
+    setTextBoxes(prev => [...prev, newTextBox]);
+    setSelectedObjectId(newTextBox.id);
+  };
 
-  const handleRemoveTextBox = useCallback((id) => {
-    if (!id) return;
-    setTextBoxes(prev => prev.filter(box => box.id !== id));
-    if (selectedObjectId === id) {
-      setSelectedObjectId(null);
-    }
-  }, [selectedObjectId]);
-
-  const handleAddImage = useCallback((file) => {
+  const handleAddImage = (file) => {
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = (e) => {
       const newImage = {
         id: `image-${Date.now()}`,
-        src: event.target.result,
+        src: e.target.result,
         left: 50,
         top: 50,
-        scaleX: 0.2,
-        scaleY: 0.2,
+        scaleX: 0.5,
+        scaleY: 0.5,
         angle: 0,
       };
-      setImages(prevImages => [...prevImages, newImage]);
+      setImages(prev => [...prev, newImage]);
       setSelectedObjectId(newImage.id);
     };
     reader.readAsDataURL(file);
-  }, []);
+  };
 
-  const handleUpdateImage = useCallback((id, updatedProperties) => {
-    if (!id) return;
-    setImages(prevImages =>
-      prevImages.map(img =>
-        img.id === id ? { ...img, ...updatedProperties } : img
-      )
-    );
-  }, []);
+  const handleUpdateObject = (id, properties) => {
+    setTextBoxes(prev => prev.map(box => box.id === id ? { ...box, ...properties } : box));
+    setImages(prev => prev.map(img => img.id === id ? { ...img, ...properties } : img));
+  };
 
-  const handleRemoveImage = useCallback((id) => {
-    if (!id) return;
-    setImages(prev => prev.filter(img => img.id !== id));
-    if (selectedObjectId === id) {
+  const handleSelectObject = (id) => {
+    setSelectedObjectId(id);
+  };
+
+  const handleRemoveSelectedObject = () => {
+    if (selectedObjectId) {
+      setTextBoxes(prev => prev.filter(box => box.id !== selectedObjectId));
+      setImages(prev => prev.filter(img => img.id !== selectedObjectId));
       setSelectedObjectId(null);
     }
-  }, [selectedObjectId]);
+  };
 
-  const handleRemoveSelectedObject = useCallback(() => {
-    if (!selectedObjectId) return;
-    if (selectedObjectId.startsWith('text-')) {
-      handleRemoveTextBox(selectedObjectId);
-    } else if (selectedObjectId.startsWith('image-')) {
-      handleRemoveImage(selectedObjectId);
+  const handleExport = () => {
+    if (fabricCanvasRef.current) {
+      const dataUrl = fabricCanvasRef.current.toDataURL({ format: 'png', quality: 1 });
+      saveAs(dataUrl, 'meme.png');
     }
-  }, [selectedObjectId, handleRemoveTextBox, handleRemoveImage]);
+  };
 
-  const selectedTextBox = textBoxes.find(box => box.id === selectedObjectId);
-  const isObjectSelected = !!selectedObjectId;
+  const selectedObject = [...textBoxes, ...images].find(obj => obj.id === selectedObjectId);
+  const selectedTextBox = selectedObject && selectedObject.text !== undefined ? selectedObject : null;
 
   return (
-    <>
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-        <header className="mb-4 text-center">
-          <h1 className="text-3xl font-bold text-gray-800">PV Meme Generator</h1>
-        </header>
-        <main className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">Select a Template</h2>
-            <div className="gallery-container mt-6">
-              <Gallery
-                onSelect={handleSelectTemplate}
-                selectedTemplate={selectedTemplate}
-                maxRows={3}
-                onTemplatesLoaded={handleTemplatesLoaded}
-              />
-            </div>
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-gray-800 text-white p-4 shadow-md">
+        <h1 className="text-3xl font-bold text-center">PV Meme Generator</h1>
+      </header>
+
+      <main className="p-4 md:p-6">
+        <div className="container mx-auto">
+          <div className="bg-white rounded-lg p-4 shadow-md mb-6">
+            <h2 className="text-xl font-semibold mb-4">1. Select a Template</h2>
+            <Gallery
+              onSelect={handleSelectTemplate}
+              selectedTemplate={selectedTemplate}
+              onTemplatesLoaded={handleTemplatesLoaded}
+            />
           </div>
-          <div className="relative">
+
+          <div className="bg-white rounded-lg p-4 shadow-md">
+            <h2 className="text-xl font-semibold mb-4">2. Customize Your Meme</h2>
             {isLoading && (
-              <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center z-10 rounded-lg">
-                <div className="flex flex-col items-center">
-                  <div className="spinner mb-2"></div>
-                  <p className="text-gray-700">Loading template...</p>
-                </div>
+              <div className="flex justify-center items-center h-64">
+                <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div>
+                <p className="text-gray-700">Loading template...</p>
               </div>
             )}
-            <div className="bg-white rounded-lg p-4 shadow-md">
+            <div className={`meme-editor-container ${isLoading ? 'hidden' : ''}`}>
               {selectedTemplate ? (
-                <div className="meme-editor">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="md:col-span-2">
-                      <FabricCanvas
-                        ref={fabricCanvasRef}
-                        selectedImage={selectedTemplate.src}
-                        textBoxes={textBoxes}
-                        images={images}
-                        selectedObjectId={selectedObjectId}
-                        onSelectObject={handleSelectObject}
-                        onUpdateTextBox={handleUpdateTextBox}
-                        onUpdateImage={handleUpdateImage}
-                        onReady={handleCanvasReady}
-                      />
-                    </div>
-                    <div className="text-controls">
-                      <Editor
-                        selectedTextBox={selectedTextBox}
-                        isObjectSelected={isObjectSelected}
-                        onUpdate={handleUpdateTextBox}
-                        onAdd={handleAddTextBox}
-                        onRemove={handleRemoveSelectedObject}
-                        onExport={() => fabricCanvasRef.current?.handleExport()}
-                        isLoading={isLoading}
-                        onAddImage={handleAddImage}
-                      />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2">
+                    <FabricCanvas
+                      ref={fabricCanvasRef}
+                      templateUrl={selectedTemplate.src}
+                      textBoxes={textBoxes}
+                      images={images}
+                      onReady={handleCanvasReady}
+                      onUpdateObject={handleUpdateObject}
+                      onSelectObject={handleSelectObject}
+                    />
+                  </div>
+                  <div>
+                    <Editor
+                      selectedTextBox={selectedTextBox}
+                      isObjectSelected={!!selectedObjectId}
+                      onUpdate={handleUpdateObject}
+                      onAdd={handleAddTextBox}
+                      onRemove={handleRemoveSelectedObject}
+                      onExport={handleExport}
+                      isLoading={isLoading}
+                      onAddImage={handleAddImage}
+                    />
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">Select a template to get started</p>
-                </div>
+                <p className="text-center text-gray-500">Please select a template to start.</p>
               )}
             </div>
           </div>
-        </main>
-      </div>
-    </>
+        </div>
+      </main>
+    </div>
   );
 }
 

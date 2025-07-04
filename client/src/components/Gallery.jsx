@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { database } from '../firebase';
+import { ref, get } from 'firebase/database';
 
 // Static list of meme files with their filenames for the public folder
 const memeTemplates = [
@@ -26,77 +28,51 @@ const templatesWithSrc = memeTemplates.map(template => ({
   src: `/memes/${template.filename}` // Use public folder path
 }));
 
-// Export static method to get templates from outside
-export function getTemplates() {
-  const localTemplates = JSON.parse(localStorage.getItem('memeTemplates') || '[]');
-  const allTemplates = [...templatesWithSrc, ...localTemplates.map((t, i) => ({ ...t, id: `local-${i}`, src: t.url }))];
-  return allTemplates;
+export async function getTemplates() {
+  const templatesRef = ref(database, 'templates');
+  const snapshot = await get(templatesRef);
+  const remoteTemplates = [];
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    for (const key in data) {
+      remoteTemplates.push({ id: key, ...data[key], src: data[key].url });
+    }
+  }
+  return [...templatesWithSrc, ...remoteTemplates];
 }
 
-export default function Gallery({ onSelect, selectedTemplate, maxRows = 3, onTemplatesLoaded }) {
+const Gallery = ({ onSelect, selectedTemplate, maxRows = 3, onTemplatesLoaded }) => {
   const [displayedTemplates, setDisplayedTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Set up all templates with their src properties
   useEffect(() => {
-    const allTemplates = getTemplates();
-    setDisplayedTemplates(allTemplates);
-    setLoading(false);
-    
-    // Notify parent that templates are loaded
-    if (onTemplatesLoaded) {
-      onTemplatesLoaded(allTemplates);
-    }
-    
-    // Preload images for better user experience
-    allTemplates.forEach(template => {
-      const img = new Image();
-      img.src = template.src;
-    });
-    
-    // No connection status needed since we're using local files only
+    const loadTemplates = async () => {
+      setLoading(true);
+      const allTemplates = await getTemplates();
+      setDisplayedTemplates(allTemplates);
+      setLoading(false);
+      if (onTemplatesLoaded) {
+        onTemplatesLoaded(allTemplates);
+      }
+    };
+    loadTemplates();
   }, [onTemplatesLoaded]);
 
-  // Check if template is selected
-  const isTemplateSelected = (template) => {
-    if (!selectedTemplate) return false;
-    return selectedTemplate.id === template.id;
-  };
-
-  // Handle template selection
-  const handleSelect = (template) => {
-    console.log('Selecting template:', template);
-    if (onSelect) {
-      onSelect(template);
-    }
-  };
+  const rowCount = Math.min(maxRows, Math.ceil(displayedTemplates.length / 5));
 
   return (
-    <div className="meme-gallery grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+    <div className="grid grid-cols-5 gap-2" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
       {loading ? (
-        <div className="col-span-full text-center py-4">Loading templates...</div>
+        <div className="col-span-full text-center py-4 text-gray-500">Loading templates...</div>
       ) : (
-        displayedTemplates.map((template) => (
+        displayedTemplates.map(template => (
           <div
-            key={template.id || template.name}
-            className={`meme-thumbnail cursor-pointer transition-all border-2 rounded 
-              ${isTemplateSelected(template) 
-                ? 'selected border-blue-500 shadow-lg scale-95' 
-                : 'border-transparent hover:border-gray-300'}`}
-            onClick={() => handleSelect(template)}
+            key={template.id}
+            className={`cursor-pointer border-4 ${selectedTemplate && selectedTemplate.id === template.id ? 'border-blue-500' : 'border-transparent'} rounded-lg overflow-hidden`}
+            onClick={() => onSelect(template)}
           >
             {template.src ? (
-              <img
-                src={template.src}
-                alt={template.name || `Meme template`}
-                className="w-full h-auto rounded object-cover aspect-square"
-                loading="lazy"
-                onError={(e) => {
-                  console.error('Image failed to load:', template.src);
-                  e.target.onerror = null;
-                  e.target.src = `https://via.placeholder.com/200x200?text=${encodeURIComponent(template.name)}`;
-                }}
-              />
+              <img src={template.src} alt={template.name} className="w-full h-auto object-cover" />
             ) : (
               <div className="bg-gray-200 aspect-square rounded flex items-center justify-center p-2 text-center text-xs">
                 <span>{template.name}</span>
@@ -106,10 +82,10 @@ export default function Gallery({ onSelect, selectedTemplate, maxRows = 3, onTem
         ))
       )}
       {!loading && displayedTemplates.length === 0 && (
-        <div className="col-span-full text-center py-4 text-gray-500">
-          No templates found.
-        </div>
+        <div className="col-span-full text-center py-4 text-gray-500">No templates found.</div>
       )}
     </div>
   );
-}
+};
+
+export default Gallery;

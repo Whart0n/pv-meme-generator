@@ -1,17 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { database } from '../firebase';
+import { ref, push, onValue, remove } from 'firebase/database';
 
 const Admin = () => {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [localTemplates, setLocalTemplates] = useState([]);
-
-  const loadTemplates = useCallback(() => {
-    const templates = JSON.parse(localStorage.getItem('memeTemplates') || '[]');
-    setLocalTemplates(templates);
-  }, []);
+  const [templates, setTemplates] = useState([]);
 
   useEffect(() => {
-    loadTemplates();
-  }, [loadTemplates]);
+    const templatesRef = ref(database, 'templates');
+    const unsubscribe = onValue(templatesRef, (snapshot) => {
+      const data = snapshot.val();
+      const templatesList = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+      setTemplates(templatesList);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
@@ -22,22 +26,18 @@ const Admin = () => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64Image = event.target.result;
-        const templates = JSON.parse(localStorage.getItem('memeTemplates') || '[]');
-        templates.push({ name: selectedFile.name, url: base64Image });
-        localStorage.setItem('memeTemplates', JSON.stringify(templates));
+        const templatesRef = ref(database, 'templates');
+        push(templatesRef, { name: selectedFile.name, url: base64Image });
         alert('Template uploaded successfully!');
         setSelectedFile(null);
-        loadTemplates(); // Refresh the list
       };
       reader.readAsDataURL(selectedFile);
     }
   };
 
-  const handleDelete = (templateNameToDelete) => {
-    const templates = JSON.parse(localStorage.getItem('memeTemplates') || '[]');
-    const updatedTemplates = templates.filter(template => template.name !== templateNameToDelete);
-    localStorage.setItem('memeTemplates', JSON.stringify(updatedTemplates));
-    loadTemplates(); // Refresh the list
+  const handleDelete = (templateId) => {
+    const templateRef = ref(database, `templates/${templateId}`);
+    remove(templateRef);
   };
 
   return (
@@ -55,14 +55,14 @@ const Admin = () => {
       </div>
 
       <div className="mt-8">
-        <h2 className="text-xl font-bold mb-4">Manage Local Templates</h2>
-        {localTemplates.length > 0 ? (
+        <h2 className="text-xl font-bold mb-4">Manage Templates</h2>
+        {templates.length > 0 ? (
           <ul className="bg-white p-6 rounded-lg shadow-lg">
-            {localTemplates.map((template, index) => (
-              <li key={index} className="flex justify-between items-center py-2 border-b">
+            {templates.map((template) => (
+              <li key={template.id} className="flex justify-between items-center py-2 border-b">
                 <span>{template.name}</span>
                 <button
-                  onClick={() => handleDelete(template.name)}
+                  onClick={() => handleDelete(template.id)}
                   className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
                 >
                   Delete
@@ -71,7 +71,7 @@ const Admin = () => {
             ))}
           </ul>
         ) : (
-          <p>No local templates found.</p>
+          <p>No templates found.</p>
         )}
       </div>
     </div>
