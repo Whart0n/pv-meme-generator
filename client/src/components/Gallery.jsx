@@ -41,48 +41,54 @@ export async function getTemplates() {
   return [...templatesWithSrc, ...remoteTemplates];
 }
 
-const Gallery = ({ onSelect, selectedTemplate, maxRows = 3, onTemplatesLoaded }) => {
+const Gallery = ({ onSelect, selectedTemplate, onTemplatesLoaded }) => {
   const [displayedTemplates, setDisplayedTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadTemplates = async () => {
       setLoading(true);
-      const allTemplates = await getTemplates();
-      setDisplayedTemplates(allTemplates);
-      setLoading(false);
-      if (onTemplatesLoaded) {
-        onTemplatesLoaded(allTemplates);
+      try {
+        const allTemplates = await getTemplates();
+        setDisplayedTemplates(allTemplates);
+        if (onTemplatesLoaded) {
+          onTemplatesLoaded(allTemplates);
+        }
+      } catch (error) {
+        console.error("Failed to load templates:", error);
       }
+      setLoading(false);
     };
     loadTemplates();
   }, [onTemplatesLoaded]);
 
-  const rowCount = Math.min(maxRows, Math.ceil(displayedTemplates.length / 5));
-
   return (
-    <div className="grid grid-cols-5 gap-2" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
+    <div className="h-64 overflow-y-auto p-2 border rounded-lg bg-gray-50">
       {loading ? (
-        <div className="col-span-full text-center py-4 text-gray-500">Loading templates...</div>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-gray-500">Loading templates...</p>
+        </div>
+      ) : displayedTemplates.length > 0 ? (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+          {displayedTemplates.map((template) => (
+            <div
+              key={template.id}
+              className={`cursor-pointer border-4 ${selectedTemplate?.id === template.id ? 'border-blue-500' : 'border-transparent'} rounded-lg overflow-hidden aspect-square flex items-center justify-center bg-gray-200`}
+              onClick={() => onSelect(template)}
+            >
+              <img 
+                src={template.src} 
+                alt={template.name} 
+                className="w-full h-full object-cover" 
+                onError={(e) => { e.target.style.display = 'none'; }} // Hide broken images
+              />
+            </div>
+          ))}
+        </div>
       ) : (
-        displayedTemplates.map(template => (
-          <div
-            key={template.id}
-            className={`cursor-pointer border-4 ${selectedTemplate && selectedTemplate.id === template.id ? 'border-blue-500' : 'border-transparent'} rounded-lg overflow-hidden`}
-            onClick={() => onSelect(template)}
-          >
-            {template.src ? (
-              <img src={template.src} alt={template.name} className="w-full h-auto object-cover" />
-            ) : (
-              <div className="bg-gray-200 aspect-square rounded flex items-center justify-center p-2 text-center text-xs">
-                <span>{template.name}</span>
-              </div>
-            )}
-          </div>
-        ))
-      )}
-      {!loading && displayedTemplates.length === 0 && (
-        <div className="col-span-full text-center py-4 text-gray-500">No templates found.</div>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-gray-500">No templates found.</p>
+        </div>
       )}
     </div>
   );

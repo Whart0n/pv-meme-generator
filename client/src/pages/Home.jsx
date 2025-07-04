@@ -70,14 +70,14 @@ function Home() {
     reader.readAsDataURL(file);
   };
 
-  const handleUpdateObject = (id, properties) => {
+  const handleUpdateObject = useCallback((id, properties) => {
     setTextBoxes(prev => prev.map(box => box.id === id ? { ...box, ...properties } : box));
     setImages(prev => prev.map(img => img.id === id ? { ...img, ...properties } : img));
-  };
+  }, []);
 
-  const handleSelectObject = (id) => {
+  const handleSelectObject = useCallback((id) => {
     setSelectedObjectId(id);
-  };
+  }, []);
 
   const handleRemoveSelectedObject = () => {
     if (selectedObjectId) {
@@ -89,8 +89,7 @@ function Home() {
 
   const handleExport = () => {
     if (fabricCanvasRef.current) {
-      const dataUrl = fabricCanvasRef.current.toDataURL({ format: 'png', quality: 1 });
-      saveAs(dataUrl, 'meme.png');
+      fabricCanvasRef.current.handleExport();
     }
   };
 
@@ -116,42 +115,45 @@ function Home() {
 
           <div className="bg-white rounded-lg p-4 shadow-md">
             <h2 className="text-xl font-semibold mb-4">2. Customize Your Meme</h2>
-            {isLoading && (
-              <div className="flex justify-center items-center h-64">
-                <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div>
-                <p className="text-gray-700">Loading template...</p>
-              </div>
-            )}
-            <div className={`meme-editor-container ${isLoading ? 'hidden' : ''}`}>
-              {selectedTemplate ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="md:col-span-2">
-                    <FabricCanvas
-                      ref={fabricCanvasRef}
-                      templateUrl={selectedTemplate.src}
-                      textBoxes={textBoxes}
-                      images={images}
-                      onReady={handleCanvasReady}
-                      onUpdateObject={handleUpdateObject}
-                      onSelectObject={handleSelectObject}
-                    />
-                  </div>
-                  <div>
-                    <Editor
-                      selectedTextBox={selectedTextBox}
-                      isObjectSelected={!!selectedObjectId}
-                      onUpdate={handleUpdateObject}
-                      onAdd={handleAddTextBox}
-                      onRemove={handleRemoveSelectedObject}
-                      onExport={handleExport}
-                      isLoading={isLoading}
-                      onAddImage={handleAddImage}
-                    />
-                  </div>
+            <div className="relative min-h-[400px]">
+              {isLoading && (
+                <div className="absolute inset-0 flex flex-col justify-center items-center bg-white bg-opacity-80 z-10 rounded-lg">
+                  <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32 mb-4"></div>
+                  <p className="text-gray-700 text-lg">Loading template...</p>
                 </div>
-              ) : (
-                <p className="text-center text-gray-500">Please select a template to start.</p>
               )}
+              <div className={`meme-editor-container ${isLoading && !selectedTemplate ? 'invisible' : ''}`}>
+                {selectedTemplate ? (
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                    <div className="md:col-span-3">
+                      <FabricCanvas
+                        ref={fabricCanvasRef}
+                        templateUrl={selectedTemplate.src}
+                        textBoxes={textBoxes}
+                        images={images}
+                        selectedObjectId={selectedObjectId}
+                        onReady={handleCanvasReady}
+                        onUpdateObject={handleUpdateObject}
+                        onSelectObject={handleSelectObject}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Editor
+                        selectedTextBox={selectedTextBox}
+                        isObjectSelected={!!selectedObjectId}
+                        onUpdate={handleUpdateObject}
+                        onAdd={handleAddTextBox}
+                        onRemove={handleRemoveSelectedObject}
+                        onExport={handleExport}
+                        isLoading={isLoading}
+                        onAddImage={handleAddImage}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-500 py-16">Please select a template to start.</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
