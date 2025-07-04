@@ -75,24 +75,43 @@ const FabricCanvas = forwardRef((props, ref) => {
     const existingIds = canvas.getObjects().filter(o => o.id).map(o => o.id);
     const newIds = allObjectProps.map(o => o.id);
 
+    // Remove objects that are no longer in props
     existingIds.filter(id => !newIds.includes(id)).forEach(id => {
       const objToRemove = canvas.getObjects().find(o => o.id === id);
       if (objToRemove) canvas.remove(objToRemove);
     });
 
+    // Add or update objects
     allObjectProps.forEach(obj => {
       const existingObject = canvas.getObjects().find(o => o.id === obj.id);
       if (existingObject) {
         const propsToUpdate = {};
-        if (obj.text !== undefined && existingObject.text !== obj.text) propsToUpdate.text = obj.text;
-        if (obj.color !== undefined && existingObject.fill !== obj.color) propsToUpdate.fill = obj.color;
-        // Add other property checks as needed
-        if (Object.keys(propsToUpdate).length > 0) existingObject.set(propsToUpdate);
-      } else {
+        // Text-specific properties
         if (obj.text !== undefined) {
-          const text = new window.fabric.Textbox(obj.text, { ...obj, borderColor: '#2B95D6', cornerColor: '#2B95D6' });
+          if (existingObject.text !== obj.text) propsToUpdate.text = obj.text;
+          if (existingObject.fontFamily !== obj.fontFamily) propsToUpdate.fontFamily = obj.fontFamily;
+          if (existingObject.fontSize !== obj.fontSize) propsToUpdate.fontSize = obj.fontSize;
+          if (existingObject.fill !== obj.color) propsToUpdate.fill = obj.color;
+          if (existingObject.stroke !== obj.stroke) propsToUpdate.stroke = obj.stroke;
+          if (existingObject.strokeWidth !== obj.strokeWidth) propsToUpdate.strokeWidth = obj.strokeWidth;
+          if (existingObject.textAlign !== obj.textAlign) propsToUpdate.textAlign = obj.textAlign;
+        }
+        
+        if (Object.keys(propsToUpdate).length > 0) {
+          existingObject.set(propsToUpdate);
+        }
+      } else {
+        // Create new object
+        if (obj.text !== undefined) { // It's a textbox
+          const { color, ...restOfObj } = obj;
+          const text = new window.fabric.Textbox(obj.text, { 
+            ...restOfObj, 
+            fill: color, 
+            borderColor: '#2B95D6', 
+            cornerColor: '#2B95D6' 
+          });
           canvas.add(text);
-        } else {
+        } else { // It's an image
           window.fabric.Image.fromURL(obj.src, (img) => {
             img.set({ ...obj, borderColor: '#2B95D6', cornerColor: '#2B95D6' });
             canvas.add(img);

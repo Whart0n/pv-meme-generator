@@ -40,6 +40,7 @@ function Home() {
       color: '#FFFFFF',
       stroke: '#000000',
       strokeWidth: 2,
+      textAlign: 'left',
       left: 50,
       top: 50,
       width: 200,

@@ -109,6 +109,20 @@ function Editor({ selectedTextBox, isObjectSelected, onUpdate, onAdd, onRemove, 
             </div>
             
             <div>
+              <label className="block text-sm font-medium text-gray-700">Alignment</label>
+              <div className="flex items-center justify-between gap-2 mt-1 rounded-md bg-gray-100 p-1">
+                {['left', 'center', 'right'].map((align) => (
+                  <button
+                    key={align}
+                    onClick={() => handleUpdate('textAlign', align)}
+                    className={`flex-1 py-1 px-2 text-sm rounded-md transition-colors duration-200 ${selectedTextBox.textAlign === align ? 'bg-blue-500 text-white' : 'bg-transparent text-gray-600 hover:bg-gray-200'}`}>
+                    {align.charAt(0).toUpperCase() + align.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700">Stroke Width: {selectedTextBox.strokeWidth}</label>
               <input
                 type="range"
