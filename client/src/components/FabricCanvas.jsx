@@ -2,11 +2,12 @@ import React, { useEffect, useLayoutEffect, useRef, useState, forwardRef, useImp
 import { saveAs } from 'file-saver';
 
 const FabricCanvas = forwardRef((props, ref) => {
-  const { selectedImage, textBoxes = [], selectedTextBoxId, onSelectTextBox, onUpdateTextBox, onReady } = props;
+  const { selectedImage, textBoxes = [], images = [], selectedObjectId, onSelectObject, onUpdateTextBox, onUpdateImage, onReady } = props;
   const canvasRef = useRef(null);
   const fabricRef = useRef(null);
   const canvasContainerRef = useRef(null);
   const textObjectsRef = useRef({});
+  const imageObjectsRef = useRef({});
   const bgImageRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [isBgImageLoaded, setIsBgImageLoaded] = useState(false);
@@ -14,13 +15,13 @@ const FabricCanvas = forwardRef((props, ref) => {
 
   const callbackRef = useRef();
   useEffect(() => {
-    callbackRef.current = { onSelectTextBox, onUpdateTextBox, onReady };
+    callbackRef.current = { onSelectObject, onUpdateTextBox, onUpdateImage, onReady };
   });
 
   const handleResize = useCallback((containerWidth) => {
     const canvas = fabricRef.current;
     const bgImage = bgImageRef.current;
-    if (!canvas || !bgImage || containerWidth === 0) return;
+    if (!canvas || !bgImage || !bgImage.width || containerWidth === 0) return;
 
     const scale = containerWidth / bgImage.width;
     const newWidth = containerWidth;
@@ -40,12 +41,17 @@ const FabricCanvas = forwardRef((props, ref) => {
     const canvas = new window.fabric.Canvas(canvasRef.current, { backgroundColor: '#f8f9fa', preserveObjectStacking: true });
     fabricRef.current = canvas;
 
-    canvas.on('selection:created', (e) => callbackRef.current.onSelectTextBox(e.selected?.[0]?.id));
-    canvas.on('selection:cleared', () => callbackRef.current.onSelectTextBox(null));
+    canvas.on('selection:created', (e) => callbackRef.current.onSelectObject(e.selected?.[0]?.id));
+    canvas.on('selection:cleared', () => callbackRef.current.onSelectObject(null));
     canvas.on('object:modified', (e) => {
       const obj = e.target;
       if (obj?.id) {
-        callbackRef.current.onUpdateTextBox(obj.id, { left: obj.left, top: obj.top, scaleX: obj.scaleX, scaleY: obj.scaleY, angle: obj.angle });
+        const properties = { left: obj.left, top: obj.top, scaleX: obj.scaleX, scaleY: obj.scaleY, angle: obj.angle };
+        if (obj.isType('textbox')) {
+          callbackRef.current.onUpdateTextBox(obj.id, properties);
+        } else if (obj.isType('image')) {
+          callbackRef.current.onUpdateImage(obj.id, properties);
+        }
       }
     });
     canvas.on('mouse:dblclick', (e) => {
@@ -62,7 +68,7 @@ const FabricCanvas = forwardRef((props, ref) => {
 
   useEffect(() => {
     const container = canvasContainerRef.current;
-    if (!container || !isCanvasReady) return;
+    if (!container || !isCanvasReady || !isBgImageLoaded) return;
 
     const resizeObserver = new ResizeObserver(entries => {
       const entry = entries[0];
@@ -71,7 +77,7 @@ const FabricCanvas = forwardRef((props, ref) => {
 
     resizeObserver.observe(container);
     return () => resizeObserver.disconnect();
-  }, [isCanvasReady, handleResize]);
+  }, [isCanvasReady, isBgImageLoaded, handleResize]);
 
   useLayoutEffect(() => {
     const canvas = fabricRef.current;
@@ -81,6 +87,7 @@ const FabricCanvas = forwardRef((props, ref) => {
     bgImageRef.current = null;
     canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas));
     textObjectsRef.current = {};
+    imageObjectsRef.current = {};
     setIsBgImageLoaded(false);
 
     window.fabric.Image.fromURL(selectedImage, (img) => {
@@ -143,11 +150,54 @@ const FabricCanvas = forwardRef((props, ref) => {
   }, [textBoxes, isBgImageLoaded]);
 
   useEffect(() => {
+    if (!fabricRef.current || !isBgImageLoaded) return;
+    const canvas = fabricRef.current;
+    const existingIds = Object.keys(imageObjectsRef.current);
+    const newImageIds = images.map(img => img.id);
+
+    const idsToRemove = existingIds.filter(id => !newImageIds.includes(id));
+    idsToRemove.forEach(id => {
+      if (imageObjectsRef.current[id]) {
+        canvas.remove(imageObjectsRef.current[id]);
+        delete imageObjectsRef.current[id];
+      }
+    });
+
+    images.forEach(img => {
+      if (!imageObjectsRef.current[img.id]) {
+        window.fabric.Image.fromURL(img.src, (fabricImage) => {
+          if (!fabricImage || !fabricRef.current) return;
+          fabricImage.set({
+            id: img.id,
+            left: img.left,
+            top: img.top,
+            scaleX: img.scaleX,
+            scaleY: img.scaleY,
+            angle: img.angle,
+            originX: 'left',
+            originY: 'top',
+            borderColor: '#2B95D6',
+            cornerColor: '#2B95D6',
+            cornerSize: 12,
+            transparentCorners: false,
+          });
+          imageObjectsRef.current[img.id] = fabricImage;
+          canvas.add(fabricImage);
+          if (img.id === selectedObjectId) {
+            canvas.setActiveObject(fabricImage);
+          }
+          canvas.renderAll();
+        }, { crossOrigin: 'anonymous' });
+      }
+    });
+  }, [images, isBgImageLoaded, selectedObjectId]);
+
+  useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || !isBgImageLoaded) return;
 
     const activeObject = canvas.getActiveObject();
-    const selectedBox = textBoxes.find(box => box.id === selectedTextBoxId);
+    const selectedBox = textBoxes.find(box => box.id === selectedObjectId);
 
     if (activeObject && selectedBox && activeObject.id === selectedBox.id) {
       const propsToUpdate = {};
@@ -166,12 +216,17 @@ const FabricCanvas = forwardRef((props, ref) => {
     }
 
     const activeObjectId = activeObject ? activeObject.id : null;
-    if (activeObjectId !== selectedTextBoxId) {
-      const objectToSelect = selectedTextBoxId ? textObjectsRef.current[selectedTextBoxId] : null;
-      canvas.setActiveObject(objectToSelect || null);
-      canvas.renderAll();
+    if (activeObjectId !== selectedObjectId) {
+      const objectToSelect = selectedObjectId ? (textObjectsRef.current[selectedObjectId] || imageObjectsRef.current[selectedObjectId]) : null;
+      if (objectToSelect) {
+        canvas.setActiveObject(objectToSelect);
+        canvas.renderAll();
+      } else if (!selectedObjectId) {
+        canvas.discardActiveObject();
+        canvas.renderAll();
+      }
     }
-  }, [textBoxes, selectedTextBoxId, isBgImageLoaded]);
+  }, [textBoxes, images, selectedObjectId, isBgImageLoaded]);
 
   useImperativeHandle(ref, () => ({
     handleExport: () => {

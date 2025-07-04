@@ -9,14 +9,16 @@ function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [templatesLoaded, setTemplatesLoaded] = useState(false);
   const [textBoxes, setTextBoxes] = useState([]);
-  const [selectedTextBoxId, setSelectedTextBoxId] = useState(null);
+  const [images, setImages] = useState([]);
+  const [selectedObjectId, setSelectedObjectId] = useState(null);
   const fabricCanvasRef = useRef(null);
 
   const handleSelectTemplate = useCallback((template) => {
     setIsLoading(true);
     setSelectedTemplate(template);
-    setSelectedTextBoxId(null);
+    setSelectedObjectId(null);
     setTextBoxes([]);
+    setImages([]);
   }, []);
 
   useEffect(() => {
@@ -36,8 +38,8 @@ function Home() {
     setTemplatesLoaded(true);
   }, []);
 
-  const handleSelectTextBox = useCallback((id) => {
-    setSelectedTextBoxId(id);
+  const handleSelectObject = useCallback((id) => {
+    setSelectedObjectId(id);
   }, []);
 
   const handleUpdateTextBox = useCallback((id, updatedProperties) => {
@@ -68,18 +70,63 @@ function Home() {
       angle: 0,
     };
     setTextBoxes(prevBoxes => [...prevBoxes, newTextBox]);
-    setSelectedTextBoxId(newId);
+    setSelectedObjectId(newId);
   }, []);
 
   const handleRemoveTextBox = useCallback((id) => {
     if (!id) return;
     setTextBoxes(prev => prev.filter(box => box.id !== id));
-    if (selectedTextBoxId === id) {
-      setSelectedTextBoxId(null);
+    if (selectedObjectId === id) {
+      setSelectedObjectId(null);
     }
-  }, [selectedTextBoxId]);
+  }, [selectedObjectId]);
 
-  const selectedTextBox = textBoxes.find(box => box.id === selectedTextBoxId);
+  const handleAddImage = useCallback((file) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const newImage = {
+        id: `image-${Date.now()}`,
+        src: event.target.result,
+        left: 50,
+        top: 50,
+        scaleX: 0.2,
+        scaleY: 0.2,
+        angle: 0,
+      };
+      setImages(prevImages => [...prevImages, newImage]);
+      setSelectedObjectId(newImage.id);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handleUpdateImage = useCallback((id, updatedProperties) => {
+    if (!id) return;
+    setImages(prevImages =>
+      prevImages.map(img =>
+        img.id === id ? { ...img, ...updatedProperties } : img
+      )
+    );
+  }, []);
+
+  const handleRemoveImage = useCallback((id) => {
+    if (!id) return;
+    setImages(prev => prev.filter(img => img.id !== id));
+    if (selectedObjectId === id) {
+      setSelectedObjectId(null);
+    }
+  }, [selectedObjectId]);
+
+  const handleRemoveSelectedObject = useCallback(() => {
+    if (!selectedObjectId) return;
+    if (selectedObjectId.startsWith('text-')) {
+      handleRemoveTextBox(selectedObjectId);
+    } else if (selectedObjectId.startsWith('image-')) {
+      handleRemoveImage(selectedObjectId);
+    }
+  }, [selectedObjectId, handleRemoveTextBox, handleRemoveImage]);
+
+  const selectedTextBox = textBoxes.find(box => box.id === selectedObjectId);
+  const isObjectSelected = !!selectedObjectId;
 
   return (
     <>
@@ -117,20 +164,24 @@ function Home() {
                         ref={fabricCanvasRef}
                         selectedImage={selectedTemplate.src}
                         textBoxes={textBoxes}
-                        selectedTextBoxId={selectedTextBoxId}
-                        onSelectTextBox={handleSelectTextBox}
+                        images={images}
+                        selectedObjectId={selectedObjectId}
+                        onSelectObject={handleSelectObject}
                         onUpdateTextBox={handleUpdateTextBox}
+                        onUpdateImage={handleUpdateImage}
                         onReady={handleCanvasReady}
                       />
                     </div>
                     <div className="text-controls">
                       <Editor
                         selectedTextBox={selectedTextBox}
+                        isObjectSelected={isObjectSelected}
                         onUpdate={handleUpdateTextBox}
                         onAdd={handleAddTextBox}
-                        onRemove={handleRemoveTextBox}
+                        onRemove={handleRemoveSelectedObject}
                         onExport={() => fabricCanvasRef.current?.handleExport()}
                         isLoading={isLoading}
+                        onAddImage={handleAddImage}
                       />
                     </div>
                   </div>
