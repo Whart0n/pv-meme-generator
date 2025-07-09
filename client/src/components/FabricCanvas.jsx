@@ -10,6 +10,9 @@ const FabricCanvas = forwardRef((props, ref) => {
   const canvasContainerRef = useRef(null);
   const bgImageRef = useRef(null);
 
+  // Ref for the watermark
+  const watermarkRef = useRef(null);
+
   // Initialize canvas and event listeners
   useEffect(() => {
     const canvas = new window.fabric.Canvas(canvasRef.current, { backgroundColor: '#f8f9fa', preserveObjectStacking: true });
@@ -30,6 +33,51 @@ const FabricCanvas = forwardRef((props, ref) => {
     return () => canvas.dispose();
   }, [onUpdateObject, onSelectObject]);
 
+  // Add watermark function
+  const addWatermark = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    
+    // Remove existing watermark if any
+    if (watermarkRef.current) {
+      canvas.remove(watermarkRef.current);
+    }
+    
+    // Create watermark text
+    const watermark = new window.fabric.Text('© PV Meme', {
+      fontSize: 12,
+      fontFamily: 'Arial',
+      fill: 'rgba(255, 255, 255, 0.5)',
+      selectable: false,
+      evented: false,
+      hasBorders: false,
+      hasControls: false,
+      lockMovementX: true,
+      lockMovementY: true,
+      lockRotation: true,
+      lockScalingX: true,
+      lockScalingY: true,
+    });
+    
+    // Position at bottom right with padding
+    const repositionWatermark = () => {
+      const canvasWidth = canvas.getWidth();
+      const canvasHeight = canvas.getHeight();
+      watermark.set({
+        left: canvasWidth - watermark.width - 10,
+        top: canvasHeight - watermark.height - 10
+      });
+    };
+    
+    repositionWatermark();
+    watermarkRef.current = watermark;
+    
+    // Always add watermark as the top layer
+    canvas.add(watermark);
+    watermark.moveTo(999); // Move to a high index to ensure it's on top
+    canvas.renderAll();
+  }, []);
+  
   // Handle template loading
   useEffect(() => {
     const canvas = fabricRef.current;
@@ -38,6 +86,7 @@ const FabricCanvas = forwardRef((props, ref) => {
     canvas.clear();
     canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas));
     bgImageRef.current = null;
+    watermarkRef.current = null;
 
     window.fabric.Image.fromURL(templateUrl, (img) => {
       bgImageRef.current = img;
@@ -45,9 +94,13 @@ const FabricCanvas = forwardRef((props, ref) => {
       const scale = container ? container.clientWidth / img.width : 1;
       canvas.setDimensions({ width: img.width * scale, height: img.height * scale });
       canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), { scaleX: scale, scaleY: scale, originX: 'left', originY: 'top', selectable: false, evented: false });
+      
+      // Add the watermark after the background image is loaded
+      addWatermark();
+      
       if (onReady) onReady();
     }, { crossOrigin: 'anonymous' });
-  }, [templateUrl, onReady]);
+  }, [templateUrl, onReady, addWatermark]);
 
   // Handle canvas resizing
   useEffect(() => {
@@ -61,6 +114,16 @@ const FabricCanvas = forwardRef((props, ref) => {
         const scale = container.clientWidth / bgImage.width;
         canvas.setDimensions({ width: container.clientWidth, height: bgImage.height * scale });
         bgImage.set({ scaleX: scale, scaleY: scale });
+        
+        // Reposition watermark after resize
+        if (watermarkRef.current) {
+          const watermark = watermarkRef.current;
+          watermark.set({
+            left: canvas.getWidth() - watermark.width - 10,
+            top: canvas.getHeight() - watermark.height - 10
+          });
+        }
+        
         canvas.renderAll();
       }
     });
