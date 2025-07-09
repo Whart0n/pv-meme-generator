@@ -1,5 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { saveAs } from 'file-saver';
+// Import the watermark image
+import watermarkImg from '../assets/watermark/watermark.png';
 
 import watermarkUrl from '../assets/watermark.png';
 
@@ -43,39 +45,46 @@ const FabricCanvas = forwardRef((props, ref) => {
       canvas.remove(watermarkRef.current);
     }
     
-    // Create watermark text
-    const watermark = new window.fabric.Text('© PV Meme', {
-      fontSize: 12,
-      fontFamily: 'Arial',
-      fill: 'rgba(255, 255, 255, 0.5)',
-      selectable: false,
-      evented: false,
-      hasBorders: false,
-      hasControls: false,
-      lockMovementX: true,
-      lockMovementY: true,
-      lockRotation: true,
-      lockScalingX: true,
-      lockScalingY: true,
-    });
-    
-    // Position at bottom right with padding
-    const repositionWatermark = () => {
-      const canvasWidth = canvas.getWidth();
-      const canvasHeight = canvas.getHeight();
-      watermark.set({
-        left: canvasWidth - watermark.width - 10,
-        top: canvasHeight - watermark.height - 10
+    // Create image watermark
+    window.fabric.Image.fromURL(watermarkImg, (img) => {
+      // Scale watermark to be appropriately sized (adjust as needed)
+      const WATERMARK_MAX_WIDTH = 60; // Maximum width in pixels
+      const scale = WATERMARK_MAX_WIDTH / img.width;
+      
+      img.scale(scale);
+      
+      // Set watermark properties
+      img.set({
+        selectable: false,
+        evented: false,
+        hasBorders: false,
+        hasControls: false,
+        lockMovementX: true,
+        lockMovementY: true,
+        lockRotation: true,
+        lockScalingX: true,
+        lockScalingY: true,
+        opacity: 0.5 // Semi-transparent
       });
-    };
-    
-    repositionWatermark();
-    watermarkRef.current = watermark;
-    
-    // Always add watermark as the top layer
-    canvas.add(watermark);
-    watermark.moveTo(999); // Move to a high index to ensure it's on top
-    canvas.renderAll();
+      
+      // Position at bottom right with padding
+      const repositionWatermark = () => {
+        const canvasWidth = canvas.getWidth();
+        const canvasHeight = canvas.getHeight();
+        img.set({
+          left: canvasWidth - (img.width * img.scaleX) - 10,
+          top: canvasHeight - (img.height * img.scaleY) - 10
+        });
+      };
+      
+      repositionWatermark();
+      watermarkRef.current = img;
+      
+      // Always add watermark as the top layer
+      canvas.add(img);
+      img.moveTo(999); // Move to a high index to ensure it's on top
+      canvas.renderAll();
+    }, { crossOrigin: 'anonymous' });
   }, []);
   
   // Handle template loading
