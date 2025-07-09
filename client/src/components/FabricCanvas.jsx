@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { saveAs } from 'file-saver';
+import watermarkUrl from '../assets/watermark.png';
 
 const FabricCanvas = forwardRef((props, ref) => {
   const { templateUrl, textBoxes = [], images = [], selectedObjectId, onUpdateObject, onSelectObject, onReady } = props;
@@ -119,6 +120,9 @@ const FabricCanvas = forwardRef((props, ref) => {
         }
       }
     });
+
+
+
     canvas.renderAll();
   }, [textBoxes, images]);
 
@@ -138,13 +142,56 @@ const FabricCanvas = forwardRef((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     handleExport: () => {
-      if (!fabricRef.current) return;
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+
       try {
-        fabricRef.current.discardActiveObject();
-        fabricRef.current.renderAll();
-        const filename = `meme-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-        const dataURL = fabricRef.current.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
-        saveAs(dataURL, filename);
+        canvas.discardActiveObject().renderAll();
+
+        const addWatermarkAndExport = async () => {
+          try {
+            const watermarkImg = await new Promise((resolve, reject) => {
+              window.fabric.Image.fromURL(watermarkUrl, (img) => {
+                if (img) {
+                  resolve(img);
+                } else {
+                  reject(new Error('Failed to load watermark image.'));
+                }
+              }, { crossOrigin: 'anonymous' });
+            });
+
+            const canvasWidth = canvas.getWidth();
+            const canvasHeight = canvas.getHeight();
+            const watermarkScale = 80 / watermarkImg.width;
+
+            watermarkImg.set({
+              left: canvasWidth - (watermarkImg.width * watermarkScale) - 10,
+              top: canvasHeight - (watermarkImg.height * watermarkScale) - 10,
+              scaleX: watermarkScale,
+              scaleY: watermarkScale,
+              selectable: false,
+              evented: false,
+              opacity: 0.7,
+            });
+
+            canvas.add(watermarkImg);
+            watermarkImg.bringToFront();
+
+            canvas.renderAll(() => {
+              const filename = `meme-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+              const dataURL = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
+              saveAs(dataURL, filename);
+
+              canvas.remove(watermarkImg);
+              canvas.renderAll();
+            });
+
+          } catch (error) {
+            console.error('Error adding watermark:', error);
+          }
+        };
+
+        addWatermarkAndExport();
       } catch (error) {
         console.error('Error exporting meme:', error);
       }
