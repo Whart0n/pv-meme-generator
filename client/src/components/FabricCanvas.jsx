@@ -3,8 +3,6 @@ import { saveAs } from 'file-saver';
 // Import the watermark image
 import watermarkImg from '../assets/watermark/watermark.png';
 
-import watermarkUrl from '../assets/watermark.png';
-
 const FabricCanvas = forwardRef((props, ref) => {
   const { templateUrl, textBoxes = [], images = [], selectedObjectId, onUpdateObject, onSelectObject, onReady } = props;
   const canvasRef = useRef(null);
@@ -215,43 +213,29 @@ const FabricCanvas = forwardRef((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     handleExport: () => {
-      const performExport = () => {
-        const canvas = fabricRef.current;
-        if (!canvas) return;
+      const canvas = fabricRef.current;
+      if (!canvas) return;
 
-        try {
-          canvas.discardActiveObject().renderAll();
-          const memeDataUrl = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
-
-          window.watermark([memeDataUrl, watermarkUrl])
-            .image(window.watermark.image.lowerRight(0.5))
-            .then(img => {
-              const filename = `meme-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-              saveAs(img.src, filename);
-            })
-            .catch(err => {
-              console.error('Watermark.js error:', err);
-            });
-        } catch (error) {
-          console.error('Error exporting meme:', error);
-        }
-      };
-
-      const waitForWatermark = (callback) => {
-        if (window.watermark) {
-          callback();
-        } else {
-          console.log('Watermark.js not ready, waiting...');
-          const interval = setInterval(() => {
-            if (window.watermark) {
-              clearInterval(interval);
-              callback();
-            }
-          }, 100);
-        }
-      };
-
-      waitForWatermark(performExport);
+      try {
+        // Make sure any active object is deselected
+        canvas.discardActiveObject();
+        canvas.renderAll();
+        
+        // Export the canvas with the watermark already on it
+        const dataURL = canvas.toDataURL({ 
+          format: 'png', 
+          quality: 1, 
+          multiplier: 2 // Higher resolution export
+        });
+        
+        // Generate filename with timestamp
+        const filename = `meme-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+        
+        // Save the file
+        saveAs(dataURL, filename);
+      } catch (error) {
+        console.error('Error exporting meme:', error);
+      }
     },
   }));
 
