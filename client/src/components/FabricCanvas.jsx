@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { saveAs } from 'file-saver';
-import watermark from 'watermarkjs';
+
 import watermarkUrl from '../assets/watermark.png';
 
 const FabricCanvas = forwardRef((props, ref) => {
@@ -150,8 +150,8 @@ const FabricCanvas = forwardRef((props, ref) => {
         canvas.discardActiveObject().renderAll();
         const memeDataUrl = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
 
-        watermark([memeDataUrl, watermarkUrl])
-          .image(watermark.image.lowerRight(0.5)) // Scale watermark to 50% of its size
+        window.watermark([memeDataUrl, watermarkUrl])
+          .image(window.watermark.image.lowerRight(0.5)) // Scale watermark to 50% of its size
           .then(img => {
             const filename = `meme-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
             saveAs(img.src, filename); // img.src is the watermarked image as a data URL
