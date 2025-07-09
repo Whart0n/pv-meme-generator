@@ -14,6 +14,6 @@ export default defineConfig({
   },
   publicDir: 'public',
   optimizeDeps: {
-    exclude: ['fabric'],
+    include: ['watermarkjs'],
   },
 });
