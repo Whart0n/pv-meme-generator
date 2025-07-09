@@ -150,25 +150,15 @@ const FabricCanvas = forwardRef((props, ref) => {
 
         const addWatermarkAndExport = async () => {
           try {
-            // Fetch the image and convert to a base64 data URL to avoid CORS issues
-            const response = await fetch(watermarkUrl);
-            const blob = await response.blob();
-            const base64Url = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
+            const watermarkImgElement = await new Promise((resolve, reject) => {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.onload = () => resolve(img);
+              img.onerror = () => reject(new Error('Failed to load watermark image element.'));
+              img.src = watermarkUrl;
             });
 
-            const watermarkImg = await new Promise((resolve, reject) => {
-              window.fabric.Image.fromURL(base64Url, (img) => {
-                if (img) {
-                  resolve(img);
-                } else {
-                  reject(new Error('Failed to load watermark image from data URL.'));
-                }
-              });
-            });
+            const watermarkImg = new window.fabric.Image(watermarkImgElement);
 
             const canvasWidth = canvas.getWidth();
             const canvasHeight = canvas.getHeight();
