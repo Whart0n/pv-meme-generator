@@ -165,13 +165,21 @@ const FabricCanvas = forwardRef((props, ref) => {
         }
       };
 
-      if (window.watermark) {
-        performExport();
-      } else {
-        const script = document.getElementById('watermarkjs-script');
-        script.addEventListener('load', performExport);
-        console.error('Watermark.js script not loaded yet. Waiting for it to load.');
-      }
+      const waitForWatermark = (callback) => {
+        if (window.watermark) {
+          callback();
+        } else {
+          console.log('Watermark.js not ready, waiting...');
+          const interval = setInterval(() => {
+            if (window.watermark) {
+              clearInterval(interval);
+              callback();
+            }
+          }, 100);
+        }
+      };
+
+      waitForWatermark(performExport);
     },
   }));
 
