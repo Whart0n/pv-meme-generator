@@ -4,6 +4,7 @@ import Gallery from '../components/Gallery';
 import FabricCanvas from '../components/FabricCanvas';
 import Editor from '../components/Editor';
 import { saveAs } from 'file-saver';
+import logoImg from '../assets/logo/logo.png';
 
 function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -100,7 +101,10 @@ function Home() {
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-gray-800 text-white p-4 shadow-md">
-        <h1 className="text-3xl font-bold text-center">PV Meme Generator</h1>
+        <div className="flex items-center justify-center space-x-3">
+          <img src={logoImg} alt="2.0 Logo" className="h-10 w-10" />
+          <h1 className="text-3xl font-bold">PV Meme Generator</h1>
+        </div>
       </header>
 
       <main className="p-4 md:p-6">
