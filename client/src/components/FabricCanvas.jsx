@@ -143,25 +143,34 @@ const FabricCanvas = forwardRef((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     handleExport: () => {
-      const canvas = fabricRef.current;
-      if (!canvas) return;
+      const performExport = () => {
+        const canvas = fabricRef.current;
+        if (!canvas) return;
 
-      try {
-        canvas.discardActiveObject().renderAll();
-        const memeDataUrl = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
+        try {
+          canvas.discardActiveObject().renderAll();
+          const memeDataUrl = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
 
-        window.watermark([memeDataUrl, watermarkUrl])
-          .image(window.watermark.image.lowerRight(0.5)) // Scale watermark to 50% of its size
-          .then(img => {
-            const filename = `meme-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-            saveAs(img.src, filename); // img.src is the watermarked image as a data URL
-          })
-          .catch(err => {
-            console.error('Watermark.js error:', err);
-          });
+          window.watermark([memeDataUrl, watermarkUrl])
+            .image(window.watermark.image.lowerRight(0.5))
+            .then(img => {
+              const filename = `meme-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+              saveAs(img.src, filename);
+            })
+            .catch(err => {
+              console.error('Watermark.js error:', err);
+            });
+        } catch (error) {
+          console.error('Error exporting meme:', error);
+        }
+      };
 
-      } catch (error) {
-        console.error('Error exporting meme:', error);
+      if (window.watermark) {
+        performExport();
+      } else {
+        const script = document.getElementById('watermarkjs-script');
+        script.addEventListener('load', performExport);
+        console.error('Watermark.js script not loaded yet. Waiting for it to load.');
       }
     },
   }));
