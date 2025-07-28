@@ -65,8 +65,6 @@ export async function deleteMeme(memeId) {
   await remove(memeRef);
 }
 
-  const memesRef = query(ref(database, 'memes'), orderByChild('templateId'));
-  const snap = await get(memesRef);
   const memes = [];
   snap.forEach(child => {
     const meme = child.val();
