@@ -45,7 +45,7 @@ export async function getTopMemes(limit = 20) {
   const snap = await get(memesRef);
   const memes = [];
   snap.forEach(child => memes.push({ id: child.key, ...child.val() }));
-  // Highest upvotes last, so reverse
+  // Highest upvotes last, so reverse to get highest first
   return memes.reverse();
 }
 

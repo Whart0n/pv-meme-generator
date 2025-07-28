@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getTopMemes, upvoteMeme, deleteMeme } from '../api/memeApi';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import MemeModal from '../components/MemeModal';
 
 const getSessionId = () => {
   let id = localStorage.getItem('pv-meme-session-id');
@@ -19,6 +20,8 @@ export default function Leaderboard() {
   const sessionId = getSessionId();
   const [admin, setAdmin] = useState(null);
   const [rateLimitError, setRateLimitError] = useState('');
+  const [selectedMeme, setSelectedMeme] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, setAdmin);
@@ -58,6 +61,26 @@ export default function Leaderboard() {
   const handleDelete = async (memeId) => {
     await deleteMeme(memeId);
     setMemes(memes => memes.filter(m => m.id !== memeId));
+    setIsModalOpen(false);
+  };
+
+  const handleMemeClick = (meme) => {
+    setSelectedMeme(meme);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedMeme(null);
+  };
+
+  const handleModalUpvote = async (memeId) => {
+    await handleUpvote(memeId);
+    // Update the selected meme with new upvote count
+    const updatedMeme = memes.find(m => m.id === memeId);
+    if (updatedMeme) {
+      setSelectedMeme(updatedMeme);
+    }
   };
 
   return (
@@ -80,7 +103,13 @@ export default function Leaderboard() {
               return (
                 <div key={meme.id} className="flex items-center gap-4 bg-gray-50 rounded p-3 shadow-sm">
                   <span className="font-bold text-lg w-6 text-center">{i + 1}</span>
-                  <img src={meme.imgDataUrl} alt="Meme" className="w-24 h-24 object-cover rounded border" />
+                  <img 
+                    src={meme.imgDataUrl} 
+                    alt="Meme" 
+                    className="w-24 h-24 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity" 
+                    onClick={() => handleMemeClick(meme)}
+                    title="Click to view full size"
+                  />
                   <div className="flex-1">
                     <div className="text-sm text-gray-600">Template: {meme.templateName || meme.templateId}</div>
                     <div className="text-xs text-gray-400">Created: {new Date(meme.createdAt).toLocaleString()}</div>
@@ -114,6 +143,17 @@ export default function Leaderboard() {
           </div>
         )}
       </div>
+      
+      {/* Meme Detail Modal */}
+      <MemeModal
+        meme={selectedMeme}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onUpvote={handleModalUpvote}
+        canUpvote={selectedMeme && (!selectedMeme.upvotedBy || !selectedMeme.upvotedBy[sessionId])}
+        onDelete={handleDelete}
+        canDelete={admin}
+      />
     </div>
   );
 }
