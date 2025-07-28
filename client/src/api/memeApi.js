@@ -41,12 +41,26 @@ export async function upvoteMeme(memeId, voterId) {
  * @param {number} limit
  */
 export async function getTopMemes(limit = 20) {
-  const memesRef = query(ref(database, 'memes'), orderByChild('upvotes'), limitToLast(limit));
-  const snap = await get(memesRef);
-  const memes = [];
-  snap.forEach(child => memes.push({ id: child.key, ...child.val() }));
-  // Highest upvotes last, so reverse to get highest first
-  return memes.reverse();
+  try {
+    // Fetch all memes without ordering to avoid Firebase query limitations
+    const memesRef = ref(database, 'memes');
+    const snap = await get(memesRef);
+    
+    const memes = [];
+    snap.forEach(child => {
+      const memeData = { id: child.key, ...child.val() };
+      memes.push(memeData);
+    });
+    
+    // Sort by upvotes descending (client-side sorting)
+    memes.sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
+    
+    // Return top memes up to the limit
+    return memes.slice(0, limit);
+  } catch (error) {
+    console.error('ERROR in getTopMemes:', error);
+    throw error;
+  }
 }
 
 /**

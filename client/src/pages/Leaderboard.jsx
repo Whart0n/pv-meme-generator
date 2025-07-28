@@ -30,9 +30,21 @@ export default function Leaderboard() {
 
   useEffect(() => {
     setLoading(true);
-    getTopMemes(20)
-      .then(setMemes)
-      .catch(() => setError('Failed to load leaderboard.'))
+    getTopMemes(50) // Increased from 20 to 50 memes
+      .then(data => {
+        // Filter out memes without valid image data URLs
+        const validMemes = data.filter(meme => 
+          meme.imgDataUrl && 
+          meme.imgDataUrl.length > 0 && 
+          meme.imgDataUrl.startsWith('data:image/')
+        );
+        console.log(`Filtered ${data.length} memes to ${validMemes.length} valid memes`);
+        setMemes(validMemes);
+      })
+      .catch(error => {
+        console.error('Leaderboard: Error fetching memes:', error);
+        setError('Failed to load leaderboard.');
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -90,6 +102,7 @@ export default function Leaderboard() {
         {rateLimitError && (
           <div className="text-red-500 text-center mb-2">{rateLimitError}</div>
         )}
+
         {loading ? (
           <p className="text-gray-400">Loading...</p>
         ) : error ? (
