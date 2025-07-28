@@ -25,9 +25,17 @@ export default function SaveAndShareButton({ fabricCanvasRef, selectedTemplate }
         templateName: selectedTemplate.name || selectedTemplate.label || '',
         createdAt: Date.now(),
       };
-      await saveMeme(meme);
-      // Debug: log meme object for troubleshooting
-      console.log('Saved meme object:', meme);
+      const savedId = await saveMeme(meme);
+      // Debug: log meme object and result for troubleshooting
+      console.log('Saved meme object:', meme, 'Saved ID:', savedId);
+      if (!savedId) {
+        alert('Error: Meme was not saved to the database.');
+        return;
+      }
+      if (!meme.templateId || !meme.templateName) {
+        alert('Error: Missing templateId or templateName. Meme will not appear in leaderboard/recent memes.');
+        return;
+      }
       localStorage.setItem('pv-meme-last-created', now.toString());
       // Download PNG after saving
       const filename = `meme-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;

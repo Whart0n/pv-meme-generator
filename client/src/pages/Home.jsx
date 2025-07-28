@@ -154,7 +154,6 @@ function Home() {
                             onUpdate={handleUpdateObject}
                             onAdd={handleAddTextBox}
                             onRemove={handleRemoveSelectedObject}
-                            onExport={handleExport}
                             isLoading={isLoading}
                             onAddImage={handleAddImage}
                           />
