@@ -20,7 +20,10 @@ export default function RecentMemesBox({ templateId }) {
     if (!templateId) return;
     setLoading(true);
     getRecentMemesByTemplate(templateId, 10)
-      .then(setMemes)
+      .then(data => {
+        setMemes(data);
+        setError('');
+      })
       .catch(() => setError('Failed to load recent memes.'))
       .finally(() => setLoading(false));
   }, [templateId]);
@@ -37,8 +40,6 @@ export default function RecentMemesBox({ templateId }) {
       <h3 className="font-semibold text-lg mb-3">Recently Created Memes</h3>
       {loading ? (
         <p className="text-gray-400">Loading...</p>
-      ) : error ? (
-        <p className="text-red-500">{error}</p>
       ) : memes.length === 0 ? (
         <p className="text-gray-400">No recent memes for this template yet.</p>
       ) : (
@@ -53,6 +54,10 @@ export default function RecentMemesBox({ templateId }) {
             </div>
           ))}
         </div>
+      )}
+      {/* Only show error if not empty state */}
+      {error && memes.length > 0 && (
+        <p className="text-red-500">{error}</p>
       )}
     </div>
   );

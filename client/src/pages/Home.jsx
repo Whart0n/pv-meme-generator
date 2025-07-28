@@ -7,6 +7,7 @@ import Editor from '../components/Editor';
 import { saveAs } from 'file-saver';
 import logoImg from '../assets/logo/logo.png';
 import { saveMeme } from '../api/memeApi';
+import SaveAndShareButton from '../components/SaveAndShareButton';
 
 function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -160,24 +161,10 @@ function Home() {
                         </div>
                       </div>
                       <div className="flex justify-end mt-4">
-                        <button
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow font-semibold"
-                          onClick={async () => {
-                            if (!fabricCanvasRef.current || !selectedTemplate) return;
-                            const dataUrl = fabricCanvasRef.current.handleExportAndGetDataUrl();
-                            if (!dataUrl) return alert('Failed to export meme image.');
-                            const meme = {
-                              imageUrl: dataUrl,
-                              templateId: selectedTemplate.id,
-                              createdAt: Date.now(),
-                              // createdBy: (future: user id/email)
-                            };
-                            await saveMeme(meme);
-                            alert('Meme saved and shared! It will appear in Recent Memes and the Leaderboard.');
-                          }}
-                        >
-                          Save & Share Meme
-                        </button>
+                        <SaveAndShareButton
+                          fabricCanvasRef={fabricCanvasRef}
+                          selectedTemplate={selectedTemplate}
+                        />
                       </div>
                     </>
                   ) : (
