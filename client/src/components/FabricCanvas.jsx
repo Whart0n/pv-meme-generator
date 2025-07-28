@@ -237,6 +237,18 @@ const FabricCanvas = forwardRef((props, ref) => {
         console.error('Error exporting meme:', error);
       }
     },
+    handleExportAndGetDataUrl: () => {
+      const canvas = fabricRef.current;
+      if (!canvas) return null;
+      try {
+        canvas.discardActiveObject();
+        canvas.renderAll();
+        return canvas.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
+      } catch (error) {
+        console.error('Error exporting meme:', error);
+        return null;
+      }
+    },
   }));
 
   return (
