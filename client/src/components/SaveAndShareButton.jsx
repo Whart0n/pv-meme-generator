@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { saveMeme } from '../api/memeApi';
+import { saveAs } from 'file-saver';
 
 export default function SaveAndShareButton({ fabricCanvasRef, selectedTemplate }) {
   const [isSaving, setIsSaving] = useState(false);
@@ -21,11 +22,17 @@ export default function SaveAndShareButton({ fabricCanvasRef, selectedTemplate }
       const meme = {
         imageUrl: dataUrl,
         templateId: selectedTemplate.id,
+        templateName: selectedTemplate.name || selectedTemplate.label || '',
         createdAt: Date.now(),
       };
       await saveMeme(meme);
+      // Debug: log meme object for troubleshooting
+      console.log('Saved meme object:', meme);
       localStorage.setItem('pv-meme-last-created', now.toString());
-      alert('Meme saved and shared! It will appear in Recent Memes and the Leaderboard.');
+      // Download PNG after saving
+      const filename = `meme-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+      saveAs(dataUrl, filename);
+      alert('Meme saved, shared, and downloaded as PNG! It will appear in Recent Memes and the Leaderboard.');
     } catch (err) {
       setError(err.message || 'Failed to save meme.');
     } finally {
