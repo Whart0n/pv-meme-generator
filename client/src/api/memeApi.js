@@ -1,6 +1,6 @@
 // Meme API for saving and upvoting memes in Firebase
 import { database } from '../firebase';
-import { ref, push, update, get, query, orderByChild, limitToLast } from 'firebase/database';
+import { ref, push, update, get, query, orderByChild, limitToLast, remove } from 'firebase/database';
 
 /**
  * Save a meme to the database.
@@ -55,6 +55,16 @@ export async function getTopMemes(limit = 20) {
  * @param {number} limit
  */
 export async function getRecentMemesByTemplate(templateId, limit = 10) {
+
+/**
+ * Delete a meme by id (admin only)
+ * @param {string} memeId
+ */
+export async function deleteMeme(memeId) {
+  const memeRef = ref(database, `memes/${memeId}`);
+  await remove(memeRef);
+}
+
   const memesRef = query(ref(database, 'memes'), orderByChild('templateId'));
   const snap = await get(memesRef);
   const memes = [];

@@ -7,6 +7,12 @@ export default function SaveAndShareButton({ fabricCanvasRef, selectedTemplate }
 
   const handleSaveAndShare = async () => {
     setError('');
+    const now = Date.now();
+    const lastCreated = Number(localStorage.getItem('pv-meme-last-created') || 0);
+    if (now - lastCreated < 60000) {
+      setError('You can only create one meme per minute. Please wait before creating another.');
+      return;
+    }
     if (!fabricCanvasRef.current || !selectedTemplate) return;
     setIsSaving(true);
     try {
@@ -18,6 +24,7 @@ export default function SaveAndShareButton({ fabricCanvasRef, selectedTemplate }
         createdAt: Date.now(),
       };
       await saveMeme(meme);
+      localStorage.setItem('pv-meme-last-created', now.toString());
       alert('Meme saved and shared! It will appear in Recent Memes and the Leaderboard.');
     } catch (err) {
       setError(err.message || 'Failed to save meme.');
