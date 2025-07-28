@@ -80,7 +80,7 @@ export default function Leaderboard() {
               return (
                 <div key={meme.id} className="flex items-center gap-4 bg-gray-50 rounded p-3 shadow-sm">
                   <span className="font-bold text-lg w-6 text-center">{i + 1}</span>
-                  <img src={meme.imageUrl} alt="Meme" className="w-24 h-24 object-cover rounded border" />
+                  <img src={meme.imgDataUrl} alt="Meme" className="w-24 h-24 object-cover rounded border" />
                   <div className="flex-1">
                     <div className="text-sm text-gray-600">Template: {meme.templateName || meme.templateId}</div>
                     <div className="text-xs text-gray-400">Created: {new Date(meme.createdAt).toLocaleString()}</div>
