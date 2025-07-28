@@ -18,7 +18,11 @@ export default function SaveAndShareButton({ fabricCanvasRef, selectedTemplate }
     setIsSaving(true);
     try {
       const dataUrl = fabricCanvasRef.current.handleExportAndGetDataUrl();
-      if (!dataUrl) throw new Error('Failed to export meme image.');
+      console.log('Exported dataUrl:', dataUrl && dataUrl.slice(0,50));
+      if (!dataUrl) {
+        alert('Export failed: Meme image dataUrl is blank or null.');
+        throw new Error('Failed to export meme image.');
+      }
       const meme = {
         imageUrl: dataUrl,
         templateId: selectedTemplate.id,
