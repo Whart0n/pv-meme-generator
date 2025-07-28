@@ -24,7 +24,7 @@ export default function SaveAndShareButton({ fabricCanvasRef, selectedTemplate }
         throw new Error('Failed to export meme image.');
       }
       const meme = {
-        imageUrl: dataUrl,
+        imgDataUrl: dataUrl,
         templateId: selectedTemplate.id,
         templateName: selectedTemplate.name || selectedTemplate.label || '',
         createdAt: Date.now(),
@@ -32,6 +32,9 @@ export default function SaveAndShareButton({ fabricCanvasRef, selectedTemplate }
       const savedId = await saveMeme(meme);
       // Debug: log meme object and result for troubleshooting
       console.log('Saved meme object:', meme, 'Saved ID:', savedId);
+      if (!meme.imgDataUrl) {
+        alert('imgDataUrl is missing before save!');
+      }
       if (!savedId) {
         alert('Error: Meme was not saved to the database.');
         return;

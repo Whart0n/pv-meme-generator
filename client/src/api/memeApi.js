@@ -4,7 +4,7 @@ import { ref, push, update, get, query, orderByChild, limitToLast, remove } from
 
 /**
  * Save a meme to the database.
- * @param {Object} meme - { imageUrl, templateId, createdAt, createdBy }
+ * @param {Object} meme - { imgDataUrl, templateId, createdAt, createdBy }
  * @returns {Promise<string>} Meme ID
  */
 export async function saveMeme(meme) {
