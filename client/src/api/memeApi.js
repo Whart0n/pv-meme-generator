@@ -55,16 +55,8 @@ export async function getTopMemes(limit = 20) {
  * @param {number} limit
  */
 export async function getRecentMemesByTemplate(templateId, limit = 10) {
-
-/**
- * Delete a meme by id (admin only)
- * @param {string} memeId
- */
-export async function deleteMeme(memeId) {
-  const memeRef = ref(database, `memes/${memeId}`);
-  await remove(memeRef);
-}
-
+  const memesRef = query(ref(database, 'memes'), orderByChild('templateId'));
+  const snap = await get(memesRef);
   const memes = [];
   snap.forEach(child => {
     const meme = child.val();
@@ -73,6 +65,15 @@ export async function deleteMeme(memeId) {
   // Sort by createdAt descending
   memes.sort((a, b) => b.createdAt - a.createdAt);
   return memes.slice(0, limit);
+}
+
+/**
+ * Delete a meme by id (admin only)
+ * @param {string} memeId
+ */
+export async function deleteMeme(memeId) {
+  const memeRef = ref(database, `memes/${memeId}`);
+  await remove(memeRef);
 }
 
 // Force ES module context for Vite/Vercel build
