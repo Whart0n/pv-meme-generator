@@ -90,8 +90,7 @@ const Gallery = ({ onSelect, selectedTemplate, onTemplatesLoaded }) => {
           <p className="text-gray-500">No templates found.</p>
         </div>
       )}
-      {/* Fade overlay at bottom to hint scrollability */}
-      <div className="pointer-events-none absolute bottom-2 left-0 w-full h-8 bg-gradient-to-t from-gray-50 to-transparent opacity-70" style={{zIndex:2}} />
+
     </div>
   );
 };
