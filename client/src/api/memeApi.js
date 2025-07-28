@@ -74,3 +74,6 @@ export async function deleteMeme(memeId) {
   memes.sort((a, b) => b.createdAt - a.createdAt);
   return memes.slice(0, limit);
 }
+
+// Force ES module context for Vite/Vercel build
+export {};
