@@ -60,7 +60,14 @@ export async function getRecentMemesByTemplate(templateId, limit = 10) {
   const memes = [];
   snap.forEach(child => {
     const meme = child.val();
-    if (meme.templateId === templateId) memes.push({ id: child.key, ...meme });
+    if (meme.templateId === templateId) {
+      // Defensive: skip if missing required fields or upvotes not a number
+      if (typeof meme.upvotes !== 'number' || !meme.templateId || !meme.templateName || !meme.createdAt) {
+        console.warn('Skipping invalid meme in recent memes:', meme);
+        return;
+      }
+      memes.push({ id: child.key, ...meme });
+    }
   });
   // Sort by createdAt descending
   memes.sort((a, b) => b.createdAt - a.createdAt);
