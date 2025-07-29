@@ -3,6 +3,7 @@ import { getTopMemes, upvoteMeme, deleteMeme } from '../api/memeApi';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import MemeModal from '../components/MemeModal';
+import UpvoteButton from '../components/UpvoteButton';
 
 const getSessionId = () => {
   let id = localStorage.getItem('pv-meme-session-id');
@@ -116,6 +117,13 @@ export default function Leaderboard() {
               return (
                 <div key={meme.id} className="flex items-center gap-4 bg-gray-50 rounded p-3 shadow-sm">
                   <span className="font-bold text-lg w-6 text-center">{i + 1}</span>
+                  <UpvoteButton
+                    upvotes={meme.upvotes || 0}
+                    hasUpvoted={alreadyUpvoted}
+                    onUpvote={() => handleUpvote(meme.id)}
+                    disabled={alreadyUpvoted}
+                    size="sm"
+                  />
                   <img 
                     src={meme.imgDataUrl} 
                     alt="Meme" 
@@ -124,22 +132,11 @@ export default function Leaderboard() {
                     title="Click to view full size"
                   />
                   <div className="flex-1">
-                    <div className="text-sm text-gray-600">Template: {meme.templateName || meme.templateId}</div>
+                    {meme.discordUsername && (
+                      <div className="text-sm font-medium text-gray-800">@{meme.discordUsername}</div>
+                    )}
                     <div className="text-xs text-gray-400">Created: {new Date(meme.createdAt).toLocaleString()}</div>
                   </div>
-                  <button
-                    onClick={() => handleUpvote(meme.id)}
-                    className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${alreadyUpvoted ? 'bg-green-200 text-green-700 cursor-not-allowed' : 'bg-blue-100 hover:bg-blue-200 text-blue-700'}`}
-                    disabled={alreadyUpvoted}
-                    title={alreadyUpvoted ? 'You already upvoted this meme' : 'Upvote this meme'}
-                  >
-                    {alreadyUpvoted ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M3 10a7 7 0 1114 0A7 7 0 013 10zm7-3a1 1 0 00-1 1v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8a1 1 0 00-1-1z" /></svg>
-                    )}
-                    {alreadyUpvoted ? 'Upvoted' : `Upvote (${meme.upvotes || 0})`}
-                  </button>
                   {admin && (
                     <button
                       onClick={() => handleDelete(meme.id)}

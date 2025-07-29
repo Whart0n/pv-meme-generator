@@ -32,13 +32,24 @@ export async function getTemplates() {
   const templatesRef = ref(database, 'templates');
   const snapshot = await get(templatesRef);
   const remoteTemplates = [];
+  
   if (snapshot.exists()) {
     const data = snapshot.val();
     for (const key in data) {
-      remoteTemplates.push({ id: key, ...data[key], src: data[key].url });
+      remoteTemplates.push({ 
+        id: key, 
+        ...data[key], 
+        src: data[key].url,
+        order: data[key].order || 9999 // Default to high number for templates without order
+      });
     }
+    
+    // Sort templates by their order property (ascending)
+    remoteTemplates.sort((a, b) => (a.order || 9999) - (b.order || 9999));
   }
-  return [...templatesWithSrc, ...remoteTemplates];
+  
+  // Merge with static templates (which will appear after remote templates)
+  return [...remoteTemplates, ...templatesWithSrc];
 }
 
 const Gallery = ({ onSelect, selectedTemplate, onTemplatesLoaded }) => {

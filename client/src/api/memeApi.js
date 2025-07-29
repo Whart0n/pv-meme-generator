@@ -15,6 +15,16 @@ export async function saveMeme(meme) {
     upvotes: 0,
     upvotedBy: {}, // session/user ids
   });
+  
+  // Update template usage count
+  if (meme.templateId) {
+    const templateUsageRef = ref(database, `templateUsage/${meme.templateId}`);
+    await update(templateUsageRef, {
+      lastUsed: Date.now(),
+      usageCount: (await get(templateUsageRef)).val()?.usageCount + 1 || 1
+    });
+  }
+  
   return newMemeRef.key;
 }
 
@@ -95,6 +105,72 @@ export async function getRecentMemesByTemplate(templateId, limit = 10) {
 export async function deleteMeme(memeId) {
   const memeRef = ref(database, `memes/${memeId}`);
   await remove(memeRef);
+}
+
+/**
+ * Reorder templates based on usage statistics
+ * @returns {Promise<void>}
+ */
+export async function reorderTemplatesByUsage() {
+  try {
+    // Get all templates
+    const templatesRef = ref(database, 'templates');
+    const templatesSnap = await get(templatesRef);
+    
+    if (!templatesSnap.exists()) return;
+    
+    const templates = [];
+    const templateUsagePromises = [];
+    
+    // Get usage data for each template
+    templatesSnap.forEach((template) => {
+      const templateData = { id: template.key, ...template.val() };
+      templates.push(templateData);
+      
+      // Get usage data for this template
+      const usageRef = ref(database, `templateUsage/${template.key}`);
+      templateUsagePromises.push(get(usageRef).then((snap) => ({
+        id: template.key,
+        usage: snap.val() || { usageCount: 0, lastUsed: 0 }
+      })));
+    });
+    
+    // Wait for all usage data to be fetched
+    const usages = await Promise.all(templateUsagePromises);
+    
+    // Create a map of template ID to usage data
+    const usageMap = usages.reduce((acc, { id, usage }) => ({
+      ...acc,
+      [id]: usage
+    }), {});
+    
+    // Sort templates by usage count (descending) and then by last used (descending)
+    const sortedTemplates = [...templates].sort((a, b) => {
+      const usageA = usageMap[a.id] || { usageCount: 0, lastUsed: 0 };
+      const usageB = usageMap[b.id] || { usageCount: 0, lastUsed: 0 };
+      
+      // First sort by usage count (descending)
+      if (usageA.usageCount !== usageB.usageCount) {
+        return usageB.usageCount - usageA.usageCount;
+      }
+      
+      // If usage counts are equal, sort by last used (descending)
+      return usageB.lastUsed - usageA.lastUsed;
+    });
+    
+    // Update the order in the database
+    const updates = {};
+    sortedTemplates.forEach((template, index) => {
+      updates[`templates/${template.id}/order`] = index;
+    });
+    
+    await update(ref(database), updates);
+    
+    console.log('Templates reordered by usage');
+  } catch (error) {
+    console.error('Error reordering templates by usage:', error);
+    throw error;
+  }
 }
 
 // Force ES module context for Vite/Vercel build

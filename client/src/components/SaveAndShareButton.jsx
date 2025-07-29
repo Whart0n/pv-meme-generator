@@ -5,6 +5,7 @@ import { saveAs } from 'file-saver';
 export default function SaveAndShareButton({ fabricCanvasRef, selectedTemplate }) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [discordUsername, setDiscordUsername] = useState('');
 
   const handleSaveAndShare = async () => {
     setError('');
@@ -28,6 +29,7 @@ export default function SaveAndShareButton({ fabricCanvasRef, selectedTemplate }
         templateId: selectedTemplate.id,
         templateName: selectedTemplate.name || selectedTemplate.label || '',
         createdAt: Date.now(),
+        discordUsername: discordUsername.trim() || null,
       };
       const savedId = await saveMeme(meme);
       // Debug: log meme object and result for troubleshooting
@@ -56,14 +58,24 @@ export default function SaveAndShareButton({ fabricCanvasRef, selectedTemplate }
   };
 
   return (
-    <div className="flex flex-col items-end w-full">
-      <button
-        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow font-semibold disabled:opacity-60"
-        onClick={handleSaveAndShare}
-        disabled={isSaving}
-      >
-        {isSaving ? 'Saving...' : 'Save & Share Meme'}
-      </button>
+    <div className="flex flex-col items-end w-full gap-3">
+      <div className="flex flex-col items-end gap-2 w-full">
+        <input
+          type="text"
+          placeholder="Discord username (optional)"
+          value={discordUsername}
+          onChange={(e) => setDiscordUsername(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded text-sm w-64 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          maxLength={32}
+        />
+        <button
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow font-semibold disabled:opacity-60"
+          onClick={handleSaveAndShare}
+          disabled={isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save & Share Meme'}
+        </button>
+      </div>
       {error && <span className="text-red-500 text-xs mt-2">{error}</span>}
     </div>
   );
