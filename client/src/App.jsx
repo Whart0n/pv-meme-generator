@@ -1,23 +1,21 @@
 import React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Link } from 'react-router-dom';
 import { Home, Admin } from './pages';
 import Leaderboard from './pages/Leaderboard';
-import Header from './components/Header';
-import Footer from './components/Footer';
 import './App.css';
 
 function App() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow bg-gray-100">
-        <Routes>
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/" element={<Home />} />
-        </Routes>
-      </main>
-      <Footer />
+    <div>
+      <nav className="bg-gray-900 text-white px-4 py-2 flex gap-4 items-center">
+        <Link to="/" className="hover:underline font-semibold">Home</Link>
+        <Link to="/leaderboard" className="hover:underline">Leaderboard</Link>
+      </nav>
+      <Routes>
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/" element={<Home />} />
+      </Routes>
     </div>
   );
 }
