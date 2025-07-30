@@ -1,6 +1,80 @@
 import React from 'react';
 
-const FONT_FACES = ['Impact', 'Arial', 'Helvetica', 'Comic Sans MS', 'Times New Roman', 'Courier New'];
+const FONT_FACES = [
+  // Classic Meme Fonts
+  'Impact',
+  'Arial Black',
+  'Arial',
+  'Helvetica',
+  'Comic Sans MS',
+  
+  // Popular Sans-Serif Fonts
+  'Montserrat',
+  'Open Sans',
+  'Roboto',
+  'Lato',
+  'Source Sans Pro',
+  'Nunito',
+  'Poppins',
+  'Oswald',
+  'Raleway',
+  'Ubuntu',
+  'Merriweather Sans',
+  'PT Sans',
+  'Dosis',
+  'Cabin',
+  'Quicksand',
+  
+  // Serif Fonts
+  'Times New Roman',
+  'Times',
+  'Georgia',
+  'Merriweather',
+  'Playfair Display',
+  'Lora',
+  'PT Serif',
+  'Crimson Text',
+  'Libre Baskerville',
+  
+  // Monospace Fonts
+  'Courier New',
+  'Monaco',
+  'Consolas',
+  'Source Code Pro',
+  'Roboto Mono',
+  'Inconsolata',
+  
+  // Display/Decorative Fonts
+  'Bebas Neue',
+  'Anton',
+  'Righteous',
+  'Fredoka One',
+  'Bangers',
+  'Creepster',
+  'Bungee',
+  'Permanent Marker',
+  'Kalam',
+  'Architects Daughter',
+  'Amatic SC',
+  'Indie Flower',
+  'Shadows Into Light',
+  'Dancing Script',
+  'Pacifico',
+  'Lobster',
+  'Great Vibes',
+  
+  // System Fonts
+  'Arial Narrow',
+  'Trebuchet MS',
+  'Verdana',
+  'Tahoma',
+  'Century Gothic',
+  'Franklin Gothic Medium',
+  'Lucida Console',
+  'Palatino',
+  'Book Antiqua',
+  'MS Sans Serif'
+];
 const FONT_COLORS = ['#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
 
 function Editor({ selectedTextBox, isObjectSelected, onUpdate, onAdd, onRemove, onExport, isLoading, onAddImage }) {
@@ -67,9 +141,21 @@ function Editor({ selectedTextBox, isObjectSelected, onUpdate, onAdd, onRemove, 
                 value={selectedTextBox.fontFamily}
                 onChange={(e) => handleUpdate('fontFamily', e.target.value)}
                 className="w-full border p-2 rounded mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 dark:border-gray-600"
+                style={{ fontFamily: selectedTextBox.fontFamily }}
               >
-                {FONT_FACES.map(font => <option key={font} value={font}>{font}</option>)}
+                {FONT_FACES.map(font => (
+                  <option 
+                    key={font} 
+                    value={font} 
+                    style={{ fontFamily: font }}
+                  >
+                    {font}
+                  </option>
+                ))}
               </select>
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Preview: <span style={{ fontFamily: selectedTextBox.fontFamily, fontSize: '14px', fontWeight: 'bold' }}>Sample Text</span>
+              </div>
             </div>
 
             <div>
