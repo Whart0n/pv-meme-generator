@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { getRecentMemesByTemplate, upvoteMeme, deleteMeme } from '../api/memeApi';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -22,6 +22,11 @@ export default function RecentMemesBox({ templateId }) {
   const [rateLimitError, setRateLimitError] = useState('');
   const [selectedMeme, setSelectedMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loadedImages, setLoadedImages] = useState(new Set());
+
+  const handleImageLoad = useCallback((memeId) => {
+    setLoadedImages(prev => new Set([...prev, memeId]));
+  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, setAdmin);
@@ -81,26 +86,36 @@ export default function RecentMemesBox({ templateId }) {
   if (!templateId) return null;
 
   return (
-    <div className="mt-6 bg-gray-50 border rounded-lg p-4">
-      <h3 className="font-semibold text-lg mb-3">Recently Created Memes</h3>
+    <div className="mt-6 bg-gray-50 dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4">
+      <h3 className="font-semibold text-lg mb-3 text-gray-900 dark:text-white">Recently Created Memes</h3>
       {rateLimitError && (
         <div className="text-red-500 text-center mb-2">{rateLimitError}</div>
       )}
       {loading ? (
-        <p className="text-gray-400">Loading...</p>
+        <p className="text-gray-400 dark:text-gray-500">Loading...</p>
       ) : memes.length === 0 ? (
-        <p className="text-gray-400">No recent memes for this template yet.</p>
+        <p className="text-gray-400 dark:text-gray-500">No recent memes for this template yet.</p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {memes.map(meme => (
-            <div key={meme.id} className="bg-white rounded shadow p-2 flex flex-col items-center">
-              <img 
-                src={meme.imgDataUrl} 
-                alt="User Meme" 
-                className="w-full h-24 object-cover rounded mb-2 cursor-pointer hover:opacity-80 transition-opacity" 
-                onClick={() => handleMemeClick(meme)}
-                title="Click to view full size"
-              />
+            <div key={meme.id} className="bg-white dark:bg-gray-700 rounded shadow p-2 flex flex-col items-center">
+              <div className="relative w-full h-24 mb-2">
+                {!loadedImages.has(meme.id) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-200 dark:bg-gray-600 rounded">
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+                <img 
+                  src={meme.imgDataUrl} 
+                  alt="User Meme" 
+                  className={`w-full h-24 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity ${loadedImages.has(meme.id) ? 'opacity-100' : 'opacity-0'}`}
+                  loading="lazy"
+                  onClick={() => handleMemeClick(meme)}
+                  onLoad={() => handleImageLoad(meme.id)}
+                  onError={() => handleImageLoad(meme.id)}
+                  title="Click to view full size"
+                />
+              </div>
               <button onClick={() => handleUpvote(meme.id)} className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M3 10a7 7 0 1114 0A7 7 0 013 10zm7-3a1 1 0 00-1 1v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8a1 1 0 00-1-1z" /></svg>
                 Upvote ({meme.upvotes || 0})

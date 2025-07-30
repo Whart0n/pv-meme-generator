@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { database } from '../firebase';
 import { ref, get } from 'firebase/database';
 
@@ -55,6 +55,11 @@ export async function getTemplates() {
 const Gallery = ({ onSelect, selectedTemplate, onTemplatesLoaded }) => {
   const [displayedTemplates, setDisplayedTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadedImages, setLoadedImages] = useState(new Set());
+
+  const handleImageLoad = useCallback((templateId) => {
+    setLoadedImages(prev => new Set([...prev, templateId]));
+  }, []);
 
   useEffect(() => {
     const loadTemplates = async () => {
@@ -74,31 +79,41 @@ const Gallery = ({ onSelect, selectedTemplate, onTemplatesLoaded }) => {
   }, [onTemplatesLoaded]);
 
   return (
-    <div className="h-64 overflow-y-auto p-2 border rounded-lg bg-gray-50 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200" style={{scrollbarColor: '#a0aec0 #edf2f7', scrollbarWidth: 'thin'}}>
+    <div className="h-64 overflow-y-auto p-2 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-500 scrollbar-track-gray-200 dark:scrollbar-track-gray-800" style={{scrollbarColor: '#a0aec0 #edf2f7', scrollbarWidth: 'thin'}}>
       {loading ? (
         <div className="flex items-center justify-center h-full">
-          <p className="text-gray-500">Loading templates...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading templates...</p>
         </div>
       ) : displayedTemplates.length > 0 ? (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
           {displayedTemplates.map((template) => (
             <div
               key={template.id}
-              className={`cursor-pointer border-4 ${selectedTemplate?.id === template.id ? 'border-blue-500' : 'border-transparent'} rounded-lg overflow-hidden aspect-square flex items-center justify-center bg-gray-200`}
+              className={`cursor-pointer border-4 ${selectedTemplate?.id === template.id ? 'border-blue-500 dark:border-blue-400' : 'border-transparent'} rounded-lg overflow-hidden aspect-square flex items-center justify-center bg-gray-200 dark:bg-gray-600 relative`}
               onClick={() => onSelect(template)}
             >
+              {!loadedImages.has(template.id) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-300 dark:bg-gray-600">
+                  <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
               <img 
                 src={template.src} 
                 alt={template.name} 
-                className="w-full h-full object-cover" 
-                onError={(e) => { e.target.style.display = 'none'; }} // Hide broken images
+                className={`w-full h-full object-cover transition-opacity duration-300 ${loadedImages.has(template.id) ? 'opacity-100' : 'opacity-0'}`}
+                loading="lazy"
+                onLoad={() => handleImageLoad(template.id)}
+                onError={(e) => { 
+                  e.target.style.display = 'none';
+                  handleImageLoad(template.id); // Mark as "loaded" even if failed
+                }}
               />
             </div>
           ))}
         </div>
       ) : (
         <div className="flex items-center justify-center h-full">
-          <p className="text-gray-500">No templates found.</p>
+          <p className="text-gray-500 dark:text-gray-400">No templates found.</p>
         </div>
       )}
 

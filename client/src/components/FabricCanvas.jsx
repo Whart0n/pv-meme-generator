@@ -1,7 +1,20 @@
-import React, { useEffect, useLayoutEffect, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import { saveAs } from 'file-saver';
 // Import the watermark image
 import watermarkImg from '../assets/watermark/watermark.png';
+
+// Debounce function for performance optimization
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
 
 const FabricCanvas = forwardRef((props, ref) => {
   const { templateUrl, textBoxes = [], images = [], selectedObjectId, onUpdateObject, onSelectObject, onReady } = props;
@@ -13,10 +26,34 @@ const FabricCanvas = forwardRef((props, ref) => {
   // Ref for the watermark
   const watermarkRef = useRef(null);
 
+  // Debounced render function for performance
+  const debouncedRender = useMemo(() => debounce(() => {
+    const canvas = fabricRef.current;
+    if (canvas) {
+      canvas.renderAll();
+    }
+  }, 16), []); // ~60fps
+
   // Initialize canvas and event listeners
   useEffect(() => {
-    const canvas = new window.fabric.Canvas(canvasRef.current, { backgroundColor: '#f8f9fa', preserveObjectStacking: true });
+    const getBackgroundColor = () => document.documentElement.classList.contains('dark') ? '#1f2937' : '#f8f9fa';
+
+    const canvas = new window.fabric.Canvas(canvasRef.current, { 
+      backgroundColor: getBackgroundColor(), 
+      preserveObjectStacking: true 
+    });
     fabricRef.current = canvas;
+
+    // Observer for theme changes
+    const observer = new MutationObserver((mutationsList) => {
+      for(let mutation of mutationsList) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          canvas.setBackgroundColor(getBackgroundColor(), canvas.renderAll.bind(canvas));
+        }
+      }
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
 
     const handleModified = (e) => {
       const obj = e.target;
@@ -24,13 +61,17 @@ const FabricCanvas = forwardRef((props, ref) => {
       const newProps = { left: obj.left, top: obj.top, scaleX: obj.scaleX, scaleY: obj.scaleY, angle: obj.angle };
       if (obj.type === 'textbox') newProps.text = obj.text;
       onUpdateObject(obj.id, newProps);
+      debouncedRender();
     };
 
     const handleSelection = (e) => onSelectObject(e.selected?.[0]?.id || null);
 
     canvas.on({ 'object:modified': handleModified, 'selection:created': handleSelection, 'selection:updated': handleSelection, 'selection:cleared': () => onSelectObject(null) });
 
-    return () => canvas.dispose();
+    return () => {
+      observer.disconnect();
+      canvas.dispose();
+    };
   }, [onUpdateObject, onSelectObject]);
 
   // Add watermark function
@@ -100,7 +141,17 @@ const FabricCanvas = forwardRef((props, ref) => {
       const container = canvasContainerRef.current;
       const scale = container ? container.clientWidth / img.width : 1;
       canvas.setDimensions({ width: img.width * scale, height: img.height * scale });
-      canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), { scaleX: scale, scaleY: scale, originX: 'left', originY: 'top', selectable: false, evented: false });
+      const slightlyEnlargedScale = scale * 1.02; // Use a slightly larger scale to be safe
+      canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+        scaleX: slightlyEnlargedScale,
+        scaleY: slightlyEnlargedScale,
+        left: canvas.width / 2,
+        top: canvas.height / 2,
+        originX: 'center',
+        originY: 'center',
+        selectable: false,
+        evented: false,
+      });
       
       // Add the watermark after the background image is loaded
       addWatermark();
@@ -118,19 +169,32 @@ const FabricCanvas = forwardRef((props, ref) => {
     const resizeObserver = new ResizeObserver(() => {
       const bgImage = bgImageRef.current;
       if (bgImage) {
-        const scale = container.clientWidth / bgImage.width;
-        canvas.setDimensions({ width: container.clientWidth, height: bgImage.height * scale });
-        bgImage.set({ scaleX: scale, scaleY: scale });
-        
-        // Reposition watermark after resize
-        if (watermarkRef.current) {
-          const watermark = watermarkRef.current;
-          watermark.set({
-            left: canvas.getWidth() - watermark.width - 10,
-            top: canvas.getHeight() - watermark.height - 10
+        const newScale = container.clientWidth / bgImage.width;
+        canvas.setDimensions({ width: bgImage.width * newScale, height: bgImage.height * newScale });
+        const bgImgInstance = canvas.backgroundImage;
+        if (bgImgInstance) {
+          const slightlyEnlargedScale = newScale * 1.02; // Use a slightly larger scale to be safe
+          bgImgInstance.set({
+            scaleX: slightlyEnlargedScale,
+            scaleY: slightlyEnlargedScale,
+            left: canvas.width / 2,
+            top: canvas.height / 2,
+            originX: 'center',
+            originY: 'center'
           });
         }
-        
+        // Use the dedicated function to correctly reposition the watermark
+        const repositionWatermark = () => {
+          if (!watermarkRef.current) return;
+          const watermark = watermarkRef.current;
+          const canvasWidth = canvas.getWidth();
+          const canvasHeight = canvas.getHeight();
+          watermark.set({
+            left: canvasWidth - (watermark.width * watermark.scaleX) - 10,
+            top: canvasHeight - (watermark.height * watermark.scaleY) - 10
+          });
+        };
+        repositionWatermark();
         canvas.renderAll();
       }
     });

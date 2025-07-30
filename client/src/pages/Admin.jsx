@@ -72,16 +72,16 @@ const Admin = () => {
 
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow-md w-80">
-          <h2 className="text-xl font-bold mb-4 text-center">Admin Login</h2>
-          {error && <div className="text-red-500 mb-2">{error}</div>}
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+        <form onSubmit={handleLogin} className="bg-white dark:bg-gray-800 p-8 rounded shadow-md w-80">
+          <h2 className="text-xl font-bold mb-4 text-center text-gray-900 dark:text-white">Admin Login</h2>
+          {error && <div className="text-red-500 dark:text-red-400 mb-2">{error}</div>}
           <input
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder="Email"
-            className="w-full mb-2 p-2 border rounded"
+            className="w-full mb-2 p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
             required
           />
           <input
@@ -89,12 +89,12 @@ const Admin = () => {
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="Password"
-            className="w-full mb-4 p-2 border rounded"
+            className="w-full mb-4 p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
             required
           />
           <button
             type="submit"
-            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            className="w-full bg-blue-500 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             disabled={loading}
           >
             {loading ? "Logging in..." : "Login"}
@@ -107,7 +107,7 @@ const Admin = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Upload New Meme Template</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Upload New Meme Template</h1>
         <button
           onClick={handleLogout}
           className="bg-gray-700 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded"
@@ -115,27 +115,27 @@ const Admin = () => {
           Logout
         </button>
       </div>
-      <div className="bg-white p-6 rounded-lg shadow-lg">
-        <input type="file" onChange={handleFileChange} className="mb-4" />
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+        <input type="file" onChange={handleFileChange} className="mb-4 text-gray-900 dark:text-gray-300" />
         <button
           onClick={handleUpload}
           disabled={!selectedFile}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-400"
+          className="bg-blue-500 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-400"
         >
           Upload Template
         </button>
       </div>
 
       <div className="mt-8">
-        <h2 className="text-xl font-bold mb-4">Manage Templates</h2>
+        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Manage Templates</h2>
         {templates.length > 0 ? (
-          <ul className="bg-white p-6 rounded-lg shadow-lg">
+          <ul className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
             {templates.map((template) => (
-              <li key={template.id} className="flex justify-between items-center py-2 border-b">
-                <span>{template.name}</span>
+              <li key={template.id} className="flex justify-between items-center py-2 border-b dark:border-gray-700">
+                <span className="text-gray-900 dark:text-gray-200">{template.name}</span>
                 <button
                   onClick={() => handleDelete(template.id)}
-                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
+                  className="bg-red-500 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
                 >
                   Delete
                 </button>
@@ -143,7 +143,7 @@ const Admin = () => {
             ))}
           </ul>
         ) : (
-          <p>No templates found.</p>
+          <p className="text-gray-500 dark:text-gray-400">No templates found.</p>
         )}
       </div>
     </div>

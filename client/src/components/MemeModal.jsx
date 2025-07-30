@@ -15,13 +15,13 @@ export default function MemeModal({ meme, isOpen, onClose, onUpvote, canUpvote, 
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg max-w-2xl max-h-[90vh] overflow-auto shadow-xl">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl max-h-[90vh] overflow-auto shadow-xl">
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-semibold">Meme Details</h3>
+        <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Meme Details</h3>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none"
             aria-label="Close modal"
           >
             ×
@@ -35,7 +35,7 @@ export default function MemeModal({ meme, isOpen, onClose, onUpvote, canUpvote, 
             <img 
               src={meme.imgDataUrl} 
               alt="Meme" 
-              className="max-w-full max-h-96 mx-auto rounded border shadow-sm"
+              className="max-w-full max-h-96 mx-auto rounded border dark:border-gray-600 shadow-sm"
               style={{ objectFit: 'contain' }}
             />
           </div>
@@ -43,11 +43,11 @@ export default function MemeModal({ meme, isOpen, onClose, onUpvote, canUpvote, 
           {/* Meme Info */}
           <div className="space-y-2 mb-4">
             {meme.discordUsername && (
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 <span className="font-medium">Created by:</span> @{meme.discordUsername}
               </div>
             )}
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               <span className="font-medium">Created:</span> {new Date(meme.createdAt).toLocaleString()}
             </div>
           </div>
