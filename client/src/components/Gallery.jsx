@@ -79,14 +79,25 @@ const Gallery = ({ onSelect, selectedTemplate, onTemplatesLoaded }) => {
   }, [onTemplatesLoaded]);
 
   return (
-    <div className="h-64 overflow-y-auto p-2 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-500 scrollbar-track-gray-200 dark:scrollbar-track-gray-800" style={{scrollbarColor: '#a0aec0 #edf2f7', scrollbarWidth: 'thin'}}>
-      {loading ? (
-        <div className="flex items-center justify-center h-full">
-          <p className="text-gray-500 dark:text-gray-400">Loading templates...</p>
-        </div>
-      ) : displayedTemplates.length > 0 ? (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-          {displayedTemplates.map((template) => (
+    <div className="relative">
+      {/* Gallery container with calculated height to show 1.5 rows */}
+      <div 
+        className="overflow-y-auto p-2 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-500 scrollbar-track-gray-200 dark:scrollbar-track-gray-800" 
+        style={{
+          scrollbarColor: '#a0aec0 #edf2f7', 
+          scrollbarWidth: 'thin',
+          height: 'calc(100px * 1.6 + 1rem)', // Show ~1.6 rows (100px per row + padding)
+          minHeight: '180px',
+          maxHeight: '280px'
+        }}
+      >
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500 dark:text-gray-400">Loading templates...</p>
+          </div>
+        ) : displayedTemplates.length > 0 ? (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+            {displayedTemplates.map((template) => (
             <div
               key={template.id}
               className={`cursor-pointer border-4 ${selectedTemplate?.id === template.id ? 'border-blue-500 dark:border-blue-400' : 'border-transparent'} rounded-lg overflow-hidden aspect-square flex items-center justify-center bg-gray-200 dark:bg-gray-600 relative`}
@@ -116,7 +127,19 @@ const Gallery = ({ onSelect, selectedTemplate, onTemplatesLoaded }) => {
           <p className="text-gray-500 dark:text-gray-400">No templates found.</p>
         </div>
       )}
-
+      </div>
+      
+      {/* Scroll indicator - shows when there are more templates */}
+      {displayedTemplates.length > 6 && (
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-50 dark:from-gray-700 to-transparent pointer-events-none rounded-b-lg">
+          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+            <svg className="w-3 h-3 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+            <span>Scroll for more</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
