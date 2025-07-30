@@ -59,7 +59,10 @@ const FabricCanvas = forwardRef((props, ref) => {
       const obj = e.target;
       if (!obj || !onUpdateObject) return;
       const newProps = { left: obj.left, top: obj.top, scaleX: obj.scaleX, scaleY: obj.scaleY, angle: obj.angle };
-      if (obj.type === 'textbox') newProps.text = obj.text;
+      if (obj.type === 'textbox') {
+        // Store the text as entered by the user (we'll apply ALL CAPS transformation in the display logic)
+        newProps.text = obj.text;
+      }
       onUpdateObject(obj.id, newProps);
       debouncedRender();
     };
@@ -224,7 +227,8 @@ const FabricCanvas = forwardRef((props, ref) => {
         const propsToUpdate = {};
         // Text-specific properties
         if (obj.text !== undefined) {
-          if (existingObject.text !== obj.text) propsToUpdate.text = obj.text;
+          const displayText = obj.allCaps ? obj.text.toUpperCase() : obj.text;
+          if (existingObject.text !== displayText) propsToUpdate.text = displayText;
           if (existingObject.fontFamily !== obj.fontFamily) propsToUpdate.fontFamily = obj.fontFamily;
           if (existingObject.fontSize !== obj.fontSize) propsToUpdate.fontSize = obj.fontSize;
           if (existingObject.fill !== obj.color) propsToUpdate.fill = obj.color;
@@ -239,8 +243,9 @@ const FabricCanvas = forwardRef((props, ref) => {
       } else {
         // Create new object
         if (obj.text !== undefined) { // It's a textbox
-          const { color, ...restOfObj } = obj;
-          const text = new window.fabric.Textbox(obj.text, { 
+          const { color, allCaps, ...restOfObj } = obj;
+          const displayText = allCaps ? obj.text.toUpperCase() : obj.text;
+          const text = new window.fabric.Textbox(displayText, { 
             ...restOfObj, 
             fill: color, 
             borderColor: '#2B95D6', 

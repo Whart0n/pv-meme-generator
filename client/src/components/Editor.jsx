@@ -203,6 +203,24 @@ function Editor({ selectedTextBox, isObjectSelected, onUpdate, onAdd, onRemove, 
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Text Style</label>
+              <div className="flex items-center gap-3 mt-1">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedTextBox.allCaps || false}
+                    onChange={(e) => handleUpdate('allCaps', e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${selectedTextBox.allCaps ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                    <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${selectedTextBox.allCaps ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                  </div>
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">ALL CAPS</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Stroke Width: {selectedTextBox.strokeWidth}</label>
               <input
                 type="range"

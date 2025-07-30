@@ -38,7 +38,7 @@ function Home() {
   const handleAddTextBox = () => {
     const newTextBox = {
       id: `text-${Date.now()}`,
-      text: 'Sample Text',
+      text: 'SAMPLE TEXT',
       fontFamily: 'Impact',
       fontSize: 40,
       color: '#FFFFFF',
@@ -52,6 +52,7 @@ function Home() {
       angle: 0,
       scaleX: 1,
       scaleY: 1,
+      allCaps: true,
     };
     setTextBoxes(prev => [...prev, newTextBox]);
     setSelectedObjectId(newTextBox.id);
