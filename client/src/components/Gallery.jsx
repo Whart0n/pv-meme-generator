@@ -86,9 +86,9 @@ const Gallery = ({ onSelect, selectedTemplate, onTemplatesLoaded }) => {
         style={{
           scrollbarColor: '#a0aec0 #edf2f7', 
           scrollbarWidth: 'thin',
-          height: 'calc(100px * 1.5 + 1rem)', // Show exactly 1.5 rows (100px per row + padding)
-          minHeight: '170px',
-          maxHeight: '270px'
+          height: '240px', // Fixed height to show 1.5 rows of templates
+          minHeight: '240px',
+          maxHeight: '300px'
         }}
       >
         {loading ? (
