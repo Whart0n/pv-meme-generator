@@ -4,6 +4,8 @@ import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import MemeModal from '../components/MemeModal';
 import UpvoteButton from '../components/UpvoteButton';
+import OptimizedImage from '../components/OptimizedImage';
+import { useProgressiveLoading } from '../hooks/useProgressiveLoading';
 import logoImg from '../assets/logo/logo.png';
 
 const getSessionId = () => {
@@ -16,7 +18,7 @@ const getSessionId = () => {
 };
 
 export default function Leaderboard() {
-  const [memes, setMemes] = useState([]);
+  const [allMemes, setAllMemes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const sessionId = getSessionId();
@@ -24,34 +26,44 @@ export default function Leaderboard() {
   const [rateLimitError, setRateLimitError] = useState('');
   const [selectedMeme, setSelectedMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loadedImages, setLoadedImages] = useState(new Set());
+  const [refreshing, setRefreshing] = useState(false);
 
-  const handleImageLoad = useCallback((memeId) => {
-    setLoadedImages(prev => new Set([...prev, memeId]));
-  }, []);
+  // Progressive loading hook
+  const { visibleItems: memes, hasMore, loading: loadingMore, loadMore } = useProgressiveLoading(allMemes, 8, 4);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, setAdmin);
     return () => unsub();
   }, []);
 
-  useEffect(() => {
-    setLoading(true);
-    getTopMemes(50)
-      .then(data => {
-        const validMemes = data.filter(meme => 
-          meme.imgDataUrl && 
-          meme.imgDataUrl.length > 0 && 
-          meme.imgDataUrl.startsWith('data:image/')
-        );
-        setMemes(validMemes);
-      })
-      .catch(error => {
-        console.error('Leaderboard: Error fetching memes:', error);
-        setError('Failed to load leaderboard.');
-      })
-      .finally(() => setLoading(false));
+  const loadMemes = useCallback(async (forceRefresh = false) => {
+    try {
+      if (forceRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError('');
+      
+      const data = await getTopMemes(50, forceRefresh);
+      const validMemes = data.filter(meme => 
+        meme.imgDataUrl && 
+        meme.imgDataUrl.length > 0 && 
+        meme.imgDataUrl.startsWith('data:image/')
+      );
+      setAllMemes(validMemes);
+    } catch (error) {
+      console.error('Leaderboard: Error fetching memes:', error);
+      setError('Failed to load leaderboard.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadMemes();
+  }, [loadMemes]);
 
   const handleUpvote = async (memeId) => {
     setRateLimitError('');
@@ -63,7 +75,7 @@ export default function Leaderboard() {
     }
     await upvoteMeme(memeId, sessionId);
     localStorage.setItem('pv-meme-last-upvote', now.toString());
-    setMemes(memes => memes.map(m => {
+    setAllMemes(memes => memes.map(m => {
       if (m.id === memeId) {
         return {
           ...m,
@@ -77,7 +89,7 @@ export default function Leaderboard() {
 
   const handleDelete = async (memeId) => {
     await deleteMeme(memeId);
-    setMemes(memes => memes.filter(m => m.id !== memeId));
+    setAllMemes(memes => memes.filter(m => m.id !== memeId));
     setIsModalOpen(false);
   };
 
@@ -93,10 +105,14 @@ export default function Leaderboard() {
 
   const handleModalUpvote = async (memeId) => {
     await handleUpvote(memeId);
-    const updatedMeme = memes.find(m => m.id === memeId);
+    const updatedMeme = allMemes.find(m => m.id === memeId);
     if (updatedMeme) {
       setSelectedMeme(updatedMeme);
     }
+  };
+
+  const handleRefresh = () => {
+    loadMemes(true);
   };
 
   return (
@@ -112,71 +128,117 @@ export default function Leaderboard() {
       <main className="p-4 md:p-6">
         <div className="container mx-auto">
           <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h1 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">🏆 Meme Leaderboard</h1>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">🏆 Meme Leaderboard</h1>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors"
+                title="Refresh leaderboard"
+              >
+                <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
             
             {rateLimitError && (
               <div className="text-red-500 text-center mb-2">{rateLimitError}</div>
             )}
 
             {loading ? (
-              <p className="text-gray-400 dark:text-gray-500">Loading...</p>
-            ) : error ? (
-              <p className="text-red-500">{error}</p>
-            ) : memes.length === 0 ? (
-              <p className="text-gray-400 dark:text-gray-500">No memes yet. Be the first to share one!</p>
-            ) : (
-              <div className="space-y-4">
-                {memes.map((meme, i) => {
-                  const alreadyUpvoted = meme.upvotedBy && meme.upvotedBy[sessionId];
-                  return (
-                    <div key={meme.id} className="flex items-center gap-4 bg-gray-50 dark:bg-gray-700 rounded p-3 shadow-sm">
-                      <span className="font-bold text-lg w-6 text-center text-gray-900 dark:text-white">{i + 1}</span>
-                      <UpvoteButton
-                        upvotes={meme.upvotes || 0}
-                        hasUpvoted={alreadyUpvoted}
-                        onUpvote={() => handleUpvote(meme.id)}
-                        disabled={alreadyUpvoted}
-                        size="sm"
-                      />
-                      <div className="relative w-24 h-24">
-                        {!loadedImages.has(meme.id) && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-gray-200 dark:bg-gray-600 rounded border">
-                            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        )}
-                        <img 
-                          src={meme.imgDataUrl} 
-                          alt="Meme" 
-                          className={`w-24 h-24 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity ${loadedImages.has(meme.id) ? 'opacity-100' : 'opacity-0'}`}
-                          loading="lazy"
-                          onClick={() => handleMemeClick(meme)}
-                          onLoad={() => handleImageLoad(meme.id)}
-                          onError={() => handleImageLoad(meme.id)}
-                          title="Click to view full size"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        {meme.discordUsername && (
-                          <div className="text-sm font-medium text-gray-800 dark:text-gray-200">@{meme.discordUsername}</div>
-                        )}
-                        <div className="text-xs text-gray-400 dark:text-gray-500">Created: {new Date(meme.createdAt).toLocaleString()}</div>
-                      </div>
-                      {admin && (
-                        <button
-                          onClick={() => handleDelete(meme.id)}
-                          className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
-                          title="Delete this meme"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 013-3h5a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V3a1 1 0 016 0v1a1 1 0 001 1v1m0 0a1 1 0 001 1v1a1 1 0 001 1V4a1 1 0 001-1h5a1 1 0 001-1V2a1 1 0 001 1H10z" />
-                          </svg>
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="flex items-center justify-center py-8">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-3 text-gray-600 dark:text-gray-400">Loading leaderboard...</span>
               </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <p className="text-red-500 mb-4">{error}</p>
+                <button
+                  onClick={() => loadMemes(true)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : allMemes.length === 0 ? (
+              <p className="text-gray-400 dark:text-gray-500 text-center py-8">No memes found.</p>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  {memes.map((meme, index) => {
+                    return (
+                      <div key={meme.id} className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-500 dark:text-gray-400 w-8">
+                          #{index + 1}
+                        </div>
+                        <UpvoteButton 
+                          upvotes={meme.upvotes || 0}
+                          isUpvoted={(meme.upvotedBy && meme.upvotedBy[sessionId]) || false}
+                          onClick={() => handleUpvote(meme.id)}
+                        />
+                        <OptimizedImage
+                          src={meme.imgDataUrl}
+                          alt="Meme"
+                          className="w-24 h-24 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => handleMemeClick(meme)}
+                          title="Click to view full size"
+                          compressionQuality={0.8}
+                          maxWidth={200}
+                          maxHeight={200}
+                        />
+                        <div className="flex-1">
+                          {meme.discordUsername && (
+                            <div className="text-sm font-medium text-gray-800 dark:text-gray-200">@{meme.discordUsername}</div>
+                          )}
+                          <div className="text-xs text-gray-400 dark:text-gray-500">Created: {new Date(meme.createdAt).toLocaleString()}</div>
+                        </div>
+                        {admin && (
+                          <button
+                            onClick={() => handleDelete(meme.id)}
+                            className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+                            title="Delete this meme"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 013-3h5a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V3a1 1 0 016 0v1a1 1 0 001 1v1m0 0a1 1 0 001 1v1a1 1 0 001 1V4a1 1 0 001-1h5a1 1 0 001-1V2a1 1 0 001 1H10z" />
+                            </svg>
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Progressive Loading Controls */}
+                {hasMore && (
+                  <div className="text-center mt-6">
+                    <button
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors flex items-center gap-2 mx-auto"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Loading more...
+                        </>
+                      ) : (
+                        <>
+                          Load More Memes
+                          <span className="text-sm opacity-75">({allMemes.length - memes.length} remaining)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+                
+                {/* Stats */}
+                <div className="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
+                  Showing {memes.length} of {allMemes.length} memes
+                </div>
+              </>
             )}
           </div>
         </div>

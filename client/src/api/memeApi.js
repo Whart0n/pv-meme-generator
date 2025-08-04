@@ -1,6 +1,7 @@
 // Meme API for saving and upvoting memes in Firebase
 import { database } from '../firebase';
 import { ref, push, update, get, query, orderByChild, limitToLast, remove } from 'firebase/database';
+import dataCache from '../utils/dataCache';
 
 /**
  * Save a meme to the database.
@@ -47,11 +48,24 @@ export async function upvoteMeme(memeId, voterId) {
 }
 
 /**
- * Get top memes by upvotes
+ * Get top memes by upvotes with caching
  * @param {number} limit
+ * @param {boolean} forceRefresh - Skip cache and fetch fresh data
  */
-export async function getTopMemes(limit = 20) {
+export async function getTopMemes(limit = 20, forceRefresh = false) {
+  const cacheKey = `top-memes-${limit}`;
+  
+  // Check cache first (unless force refresh)
+  if (!forceRefresh) {
+    const cachedData = dataCache.get(cacheKey);
+    if (cachedData) {
+      console.log('[Cache] Using cached leaderboard data');
+      return cachedData;
+    }
+  }
+  
   try {
+    console.log('[API] Fetching fresh leaderboard data from Firebase');
     // Fetch all memes without ordering to avoid Firebase query limitations
     const memesRef = ref(database, 'memes');
     const snap = await get(memesRef);
@@ -66,7 +80,12 @@ export async function getTopMemes(limit = 20) {
     memes.sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
     
     // Return top memes up to the limit
-    return memes.slice(0, limit);
+    const result = memes.slice(0, limit);
+    
+    // Cache the result for 2 minutes
+    dataCache.set(cacheKey, result, 2 * 60 * 1000);
+    
+    return result;
   } catch (error) {
     console.error('ERROR in getTopMemes:', error);
     throw error;
