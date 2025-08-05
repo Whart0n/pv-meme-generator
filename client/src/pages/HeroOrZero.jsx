@@ -206,8 +206,8 @@ const HeroOrZero = () => {
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
                     <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">How to Vote</h3>
                     <p className="text-sm text-blue-700 dark:text-blue-300">
-                      Click the <span className="font-semibold">"👑 Select as Hero"</span> button on the NFT you prefer. 
-                      The NFT with the most votes becomes the Hero.
+                      Click the <span className="font-semibold">MetaHero you prefer</span>. 
+                      The NFT with the most votes becomes the Hero, while the other becomes the Zero.
                     </p>
                   </div>
                   <button

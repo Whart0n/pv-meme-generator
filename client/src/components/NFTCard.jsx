@@ -24,7 +24,12 @@ const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform duration-200 hover:scale-105 flex flex-col h-full">
+    <div 
+      className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col h-full transition-all duration-200 ${
+        onVote ? 'cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:ring-2 hover:ring-blue-500' : ''
+      } ${isVoting ? 'opacity-75 cursor-not-allowed' : ''}`}
+      onClick={onVote && !isVoting ? handleVoteClick : undefined}
+    >
       {/* NFT Image */}
       <div className="relative" style={{ paddingTop: '100%' }}>
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700 overflow-hidden">
@@ -88,41 +93,42 @@ const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="mt-auto">
-          {/* Vote Button */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-            <button
-              onClick={handleVoteClick}
-              disabled={isVoting}
-              className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-                'bg-blue-500 hover:bg-blue-600 text-white'
-              } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''} flex items-center justify-center gap-2`}
-            >
-              {isVoting ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Voting...
-                </>
-              ) : (
-                <>
-                  <span>👑</span> Select as Hero
-                </>
-              )}
-            </button>
+        {/* Voting Status Indicator */}
+        {onVote && (
+          <div className="mt-auto">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+              <div className={`w-full py-3 px-4 rounded-lg font-medium text-center ${
+                isVoting 
+                  ? 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                  : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+              } flex items-center justify-center gap-2`}>
+                {isVoting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Voting...
+                  </>
+                ) : (
+                  <>
+                    <span>👑</span> Click to Select as Hero
+                  </>
+                )}
+              </div>
+            </div>
           </div>
+        )}
 
-          {/* OpenSea Link */}
-          <a
-            href={nft.opensea_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-b-lg transition-colors duration-200 group"
-            title="View on OpenSea"
-          >
+        {/* OpenSea Link */}
+        <a
+          href={nft.opensea_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-b-lg transition-colors duration-200 group"
+          title="View on OpenSea"
+          onClick={(e) => e.stopPropagation()} // Prevent card click when clicking OpenSea link
+        >
             <span className="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-blue-500 transition-colors">View on</span>
             <div className="relative h-4 flex items-center">
               <svg width="116" height="30" viewBox="0 0 1160 302" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-4">
@@ -143,9 +149,8 @@ const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
                   </clipPath>
                 </defs>
               </svg>
-            </div>
-          </a>
-        </div>
+          </div>
+        </a>
       </div>
     </div>
   );
