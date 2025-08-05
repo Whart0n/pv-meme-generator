@@ -153,8 +153,9 @@ const HeroOrZero = () => {
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
             Vote on MetaHero NFTs in head-to-head battles
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-500">
-            Choose which NFT is the Hero and which is the Zero
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+            Select your preferred NFT as the <span className="font-semibold text-blue-500">Hero</span> in each battle.
+            The NFT with the most votes becomes the Hero, while the other becomes the Zero.
           </p>
         </div>
 
@@ -175,14 +176,12 @@ const HeroOrZero = () => {
                   <NFTCard
                     nft={nftPair[0]}
                     onVote={handleVote}
-                    voteType="hero"
                     isVoting={voting}
                     showStats={true}
                   />
                   <NFTCard
                     nft={nftPair[1]}
                     onVote={handleVote}
-                    voteType="zero"
                     isVoting={voting}
                     showStats={true}
                   />
@@ -190,10 +189,13 @@ const HeroOrZero = () => {
 
                 {/* Instructions */}
                 <div className="text-center mt-8">
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    Click <span className="font-semibold text-green-600">HERO</span> for the NFT you prefer, 
-                    or <span className="font-semibold text-red-600">ZERO</span> for the one you don't
-                  </p>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                    <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">How to Vote</h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      Click the <span className="font-semibold">"👑 Select as Hero"</span> button on the NFT you prefer. 
+                      The NFT with the most votes becomes the Hero.
+                    </p>
+                  </div>
                   <button
                     onClick={loadNewPair}
                     disabled={voting}

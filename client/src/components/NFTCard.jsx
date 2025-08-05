@@ -1,6 +1,6 @@
 import React from 'react';
 
-const NFTCard = ({ nft, onVote, voteType, isVoting, showStats = false }) => {
+const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
   if (!nft) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 animate-pulse">
@@ -17,19 +17,26 @@ const NFTCard = ({ nft, onVote, voteType, isVoting, showStats = false }) => {
     }
   };
 
+  // Handle missing or broken images
+  const handleImageError = (e) => {
+    e.target.onerror = null; // Prevent infinite loop
+    e.target.src = 'https://via.placeholder.com/400x400?text=Image+Not+Available';
+  };
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform duration-200 hover:scale-105">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform duration-200 hover:scale-105 flex flex-col h-full">
       {/* NFT Image */}
-      <div className="relative">
+      <div className="relative flex-1">
         <img
-          src={nft.image}
+          src={nft.image || 'https://via.placeholder.com/400x400?text=Loading...'}
           alt={nft.name}
           className="w-full h-64 object-cover"
           loading="lazy"
+          onError={handleImageError}
         />
         {showStats && (
           <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-sm">
-            Elo: {nft.elo_score}
+            Elo: {nft.elo_score || 'N/A'}
           </div>
         )}
       </div>
@@ -74,41 +81,41 @@ const NFTCard = ({ nft, onVote, voteType, isVoting, showStats = false }) => {
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-2">
+        <div className="mt-auto">
           {/* Vote Button */}
-          {onVote && (
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={handleVoteClick}
               disabled={isVoting}
-              className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
-                voteType === 'hero'
-                  ? 'bg-green-500 hover:bg-green-600 text-white'
-                  : 'bg-red-500 hover:bg-red-600 text-white'
-              } ${
-                isVoting 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'hover:shadow-lg transform hover:scale-105'
-              }`}
+              className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
+                'bg-blue-500 hover:bg-blue-600 text-white'
+              } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''} flex items-center justify-center gap-2`}
             >
               {isVoting ? (
-                <div className="flex items-center justify-center">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
                   Voting...
-                </div>
+                </>
               ) : (
-                voteType === 'hero' ? '🦸 HERO' : '💀 ZERO'
+                <>
+                  <span>👑</span> Select as Hero
+                </>
               )}
             </button>
-          )}
+          </div>
 
           {/* OpenSea Link */}
           <a
             href={nft.opensea_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 flex items-center justify-center"
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-b-lg transition-colors duration-200"
             title="View on OpenSea"
           >
+            <span>View on</span>
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 0C5.374 0 0 5.374 0 12s5.374 12 12 12 12-5.374 12-12S18.626 0 12 0zm5.568 8.16c-.169-.448-.48-.84-.875-1.092-.395-.252-.856-.384-1.323-.384-.467 0-.928.132-1.323.384-.395.252-.706.644-.875 1.092L12 10.8l-1.172-2.64c-.169-.448-.48-.84-.875-1.092C9.558 6.816 9.097 6.684 8.63 6.684s-.928.132-1.323.384c-.395.252-.706.644-.875 1.092L4.8 12l1.632 3.84c.169.448.48.84.875 1.092.395.252.856.384 1.323.384.467 0 .928-.132 1.323-.384.395-.252.706-.644.875-1.092L12 13.2l1.172 2.64c.169.448.48.84.875 1.092.395.252.856.384 1.323.384.467 0 .928-.132 1.323-.384.395-.252.706-.644.875-1.092L19.2 12l-1.632-3.84z"/>
             </svg>
