@@ -1,16 +1,30 @@
 import axios from 'axios';
 
-const OPENSEA_API_BASE = 'https://api.opensea.io/api/v2';
-const METAHERO_CONTRACT = '0x6dc6001535e15b9def7b0fcf0e7e4b9c0f7c7c7c'; // MetaHero contract address
+const OPENSEA_API_V2 = 'https://api.opensea.io/api/v2';
+const OPENSEA_API_V1 = 'https://api.opensea.io/api/v1';
+const METAHERO_CONTRACT = '0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2'.toLowerCase(); // Ensure lowercase for consistency
 const API_KEY = import.meta.env.VITE_OPENSEA_API_KEY;
+
+// Log the contract address being used
+console.log('Using MetaHero contract address:', METAHERO_CONTRACT);
 
 if (!API_KEY) {
   console.warn('OpenSea API key is not set. Please add VITE_OPENSEA_API_KEY to your environment variables.');
 }
 
 // Create axios instance with default headers
-const openSeaApi = axios.create({
-  baseURL: OPENSEA_API_BASE,
+const openSeaV2Api = axios.create({
+  baseURL: OPENSEA_API_V2,
+  headers: {
+    'X-API-KEY': API_KEY || '',
+    'Accept': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (compatible; PV-Meme-Generator/1.0)'
+  },
+  timeout: 10000 // 10 second timeout
+});
+
+const openSeaV1Api = axios.create({
+  baseURL: OPENSEA_API_V1,
   headers: {
     'X-API-KEY': API_KEY || '',
     'Accept': 'application/json',
@@ -25,37 +39,54 @@ const openSeaApi = axios.create({
  * @returns {Promise<Object>} NFT metadata
  */
 export const fetchNFTMetadata = async (tokenId) => {
+  console.log(`Fetching metadata for token ${tokenId} from contract ${METAHERO_CONTRACT}`);
+  
   try {
     // First try the v2 API
-    const response = await openSeaApi.get(`/chain/ethereum/contract/${METAHERO_CONTRACT}/nfts/${tokenId}`, {
+    const v2Url = `/chain/ethereum/contract/${METAHERO_CONTRACT}/nfts/${tokenId}`;
+    console.log('Trying v2 API:', v2Url);
+    
+    const response = await openSeaV2Api.get(v2Url, {
       validateStatus: (status) => status < 500 // Don't throw for 4xx errors
     });
 
-    if (response.status === 404) {
-      // Fallback to v1 API if v2 fails
-      const v1Response = await axios.get(
-        `https://api.opensea.io/api/v1/asset/${METAHERO_CONTRACT}/${tokenId}/`,
-        {
-          headers: {
-            'X-API-KEY': API_KEY || '',
-            'Accept': 'application/json'
-          }
-        }
-      );
+    if (response.status === 200 && response.data && response.data.nft) {
+      // Process v2 response
+      const nft = response.data.nft;
+      console.log('Successfully fetched from v2 API:', nft);
       
-      const nft = v1Response.data;
       return {
         tokenId: tokenId,
         name: nft.name || `MetaHero #${tokenId}`,
         image: nft.image_url || nft.image_preview_url || nft.image_thumbnail_url,
         traits: nft.traits || [],
-        opensea_url: nft.permalink || `https://opensea.io/assets/ethereum/${METAHERO_CONTRACT}/${tokenId}`,
+        opensea_url: nft.opensea_url || `https://opensea.io/assets/ethereum/${METAHERO_CONTRACT}/${tokenId}`,
         description: nft.description || ''
       };
     }
+
+    // If v2 fails, try v1 API
+    console.log('v2 API failed, trying v1 API...');
+    const v1Url = `/asset/${METAHERO_CONTRACT}/${tokenId}/`;
+    console.log('Trying v1 API:', v1Url);
     
-    // Process v2 response
-    const nft = response.data.nft;
+    const v1Response = await openSeaV1Api.get(v1Url);
+    const nft = v1Response.data;
+    
+    if (!nft) {
+      throw new Error('No NFT data received from OpenSea');
+    }
+    
+    console.log('Successfully fetched from v1 API:', nft);
+    
+    return {
+      tokenId: tokenId,
+      name: nft.name || `MetaHero #${tokenId}`,
+      image: nft.image_url || nft.image_preview_url || nft.image_thumbnail_url,
+      traits: nft.traits || [],
+      opensea_url: nft.permalink || `https://opensea.io/assets/ethereum/${METAHERO_CONTRACT}/${tokenId}`,
+      description: nft.description || ''
+    };
     return {
       tokenId: tokenId,
       name: nft.name || `MetaHero #${tokenId}`,
@@ -84,27 +115,31 @@ export const fetchNFTMetadata = async (tokenId) => {
  */
 export const fetchCollectionStats = async () => {
   try {
-    // Try v2 API first
-    const response = await openSeaApi.get(`/collections/metahero-generative/stats`, {
+    console.log('Fetching collection stats...');
+    
+    // First try v2 API with contract address
+    const v2Response = await openSeaV2Api.get(`/collections/${METAHERO_CONTRACT}/stats`, {
       validateStatus: (status) => status < 500
     });
 
-    if (response.status === 200) {
-      return response.data.stats || response.data; // Handle both formats
+    if (v2Response.status === 200) {
+      console.log('Successfully fetched stats from v2 API');
+      return v2Response.data.stats || v2Response.data; // Handle both formats
     }
 
-    // Fallback to v1 API
-    const v1Response = await axios.get(
-      `https://api.opensea.io/api/v1/collection/metahero-generative/stats`,
-      {
-        headers: {
-          'X-API-KEY': API_KEY || '',
-          'Accept': 'application/json'
-        }
-      }
+    // Fallback to v1 API with contract address
+    console.log('v2 API failed, trying v1 API...');
+    const v1Response = await openSeaV1Api.get(
+      `/collection/${METAHERO_CONTRACT}/stats`,
+      { validateStatus: (status) => status < 500 }
     );
 
-    return v1Response.data.stats || v1Response.data;
+    if (v1Response.status === 200) {
+      console.log('Successfully fetched stats from v1 API');
+      return v1Response.data.stats || v1Response.data;
+    }
+    
+    throw new Error(`Failed to fetch collection stats: ${v1Response.status}`);
   } catch (error) {
     console.error('Error fetching collection stats:', error);
     // Return default stats instead of throwing
@@ -125,6 +160,8 @@ export const fetchCollectionStats = async () => {
  * @returns {Promise<Object>} NFTs data with pagination
  */
 export const fetchCollectionNFTs = async (limit = 20, cursor = null) => {
+  console.log(`Fetching ${limit} NFTs from collection...`);
+  
   try {
     // First try v2 API
     const params = new URLSearchParams({
@@ -132,14 +169,16 @@ export const fetchCollectionNFTs = async (limit = 20, cursor = null) => {
       ...(cursor && { next: cursor })
     });
 
-    const response = await openSeaApi.get(
+    console.log('Trying v2 API with params:', params.toString());
+    const v2Response = await openSeaV2Api.get(
       `/chain/ethereum/contract/${METAHERO_CONTRACT}/nfts?${params}`,
       { validateStatus: (status) => status < 500 }
     );
 
-    if (response.status === 200) {
+    if (v2Response.status === 200) {
+      console.log(`Successfully fetched ${v2Response.data.nfts?.length || 0} NFTs from v2 API`);
       return {
-        nfts: (response.data.nfts || []).map(nft => ({
+        nfts: (v2Response.data.nfts || []).map(nft => ({
           tokenId: nft.identifier,
           name: nft.name || `MetaHero #${nft.identifier}`,
           image: nft.image_url || nft.display_image_url,
@@ -147,25 +186,27 @@ export const fetchCollectionNFTs = async (limit = 20, cursor = null) => {
           opensea_url: `https://opensea.io/assets/ethereum/${METAHERO_CONTRACT}/${nft.identifier}`,
           description: nft.description || ''
         })),
-        next: response.data.next
+        next: v2Response.data.next
       };
     }
 
     // Fallback to v1 API
+    console.log('v2 API failed, trying v1 API...');
     const v1Params = new URLSearchParams({
+      asset_contract_address: METAHERO_CONTRACT,
       limit: Math.min(limit, 30).toString(), // V1 has lower limit
       ...(cursor && { cursor })
     });
 
-    const v1Response = await axios.get(
-      `https://api.opensea.io/api/v1/assets?asset_contract_address=${METAHERO_CONTRACT}&${v1Params}`,
-      {
-        headers: {
-          'X-API-KEY': API_KEY || '',
-          'Accept': 'application/json'
-        }
-      }
+    console.log('Trying v1 API with params:', v1Params.toString());
+    const v1Response = await openSeaV1Api.get(
+      `/assets?${v1Params}`,
+      { validateStatus: (status) => status < 500 }
     );
+    
+    if (v1Response.status !== 200) {
+      throw new Error(`Failed to fetch NFTs: ${v1Response.status} ${v1Response.statusText}`);
+    }
 
     return {
       nfts: (v1Response.data.assets || []).map(asset => ({
