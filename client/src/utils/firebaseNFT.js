@@ -248,9 +248,19 @@ export const getLeaderboard = async (limit = 10) => {
     // Sort by Elo score
     nftsArray.sort((a, b) => b.elo_score - a.elo_score);
     
+    const totalCount = nftsArray.length;
+    const bottomNFTs = nftsArray.slice(-limit).reverse(); // Reverse to show lowest first
+    
+    // Add proper ranking to bottom NFTs (their actual position in the full leaderboard)
+    const bottomNFTsWithRank = bottomNFTs.map((nft, index) => ({
+      ...nft,
+      actualRank: totalCount - limit + index + 1 // Calculate actual rank from bottom
+    }));
+    
     return {
       topNFTs: nftsArray.slice(0, limit),
-      bottomNFTs: nftsArray.slice(-limit).reverse() // Reverse to show lowest first
+      bottomNFTs: bottomNFTsWithRank,
+      totalCount
     };
   } catch (error) {
     console.error('Error getting leaderboard:', error);

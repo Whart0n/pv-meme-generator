@@ -36,9 +36,9 @@ const HeroZeroLeaderboard = () => {
             className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
           >
             {/* Rank */}
-            <div className="flex-shrink-0 w-6 text-center">
+            <div className="flex-shrink-0 w-8 text-center">
               <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                {isTop ? index + 1 : `${nfts.length - index}`}
+                {isTop ? index + 1 : (nft.actualRank || `${nfts.length - index}`)}
               </span>
             </div>
 
