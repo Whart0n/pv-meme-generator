@@ -1,0 +1,168 @@
+import React, { useState, useEffect } from 'react';
+import { getLeaderboard } from '../utils/firebaseNFT.js';
+
+const HeroZeroLeaderboard = () => {
+  const [leaderboardData, setLeaderboardData] = useState({ topNFTs: [], bottomNFTs: [] });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, []);
+
+  const fetchLeaderboard = async () => {
+    try {
+      setLoading(true);
+      const data = await getLeaderboard(10);
+      setLeaderboardData(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching leaderboard:', err);
+      setError('Failed to load leaderboard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const LeaderboardSection = ({ title, nfts, isTop = true }) => (
+    <div className="mb-6">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+        {isTop ? '🏆' : '💀'} {title}
+      </h3>
+      <div className="space-y-2">
+        {nfts.map((nft, index) => (
+          <div
+            key={nft.tokenId}
+            className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+          >
+            {/* Rank */}
+            <div className="flex-shrink-0 w-6 text-center">
+              <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                {isTop ? index + 1 : `${nfts.length - index}`}
+              </span>
+            </div>
+
+            {/* NFT Image */}
+            <div className="flex-shrink-0">
+              <img
+                src={nft.image}
+                alt={nft.name}
+                className="w-12 h-12 object-cover rounded-lg"
+                loading="lazy"
+              />
+            </div>
+
+            {/* NFT Info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {nft.name}
+              </p>
+              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                <span className="font-semibold">Elo: {nft.elo_score}</span>
+                <span>•</span>
+                <span>{nft.wins}W-{nft.losses}L</span>
+              </div>
+            </div>
+
+            {/* OpenSea Link */}
+            <div className="flex-shrink-0">
+              <a
+                href={nft.opensea_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1 text-blue-500 hover:text-blue-600 transition-colors"
+                title="View on OpenSea"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 0C5.374 0 0 5.374 0 12s5.374 12 12 12 12-5.374 12-12S18.626 0 12 0zm5.568 8.16c-.169-.448-.48-.84-.875-1.092-.395-.252-.856-.384-1.323-.384-.467 0-.928.132-1.323.384-.395.252-.706.644-.875 1.092L12 10.8l-1.172-2.64c-.169-.448-.48-.84-.875-1.092C9.558 6.816 9.097 6.684 8.63 6.684s-.928.132-1.323.384c-.395.252-.706.644-.875 1.092L4.8 12l1.632 3.84c.169.448.48.84.875 1.092.395.252.856.384 1.323.384.467 0 .928-.132 1.323-.384.395-.252.706-.644.875-1.092L12 13.2l1.172 2.64c.169.448.48.84.875 1.092.395.252.856.384 1.323.384.467 0 .928-.132 1.323-.384.395-.252.706-.644.875-1.092L19.2 12l-1.632-3.84z"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded mb-4"></div>
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 mb-3">
+              <div className="w-6 h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+              <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
+              <div className="flex-1">
+                <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mb-1"></div>
+                <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-2/3"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={fetchLeaderboard}
+            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 h-fit sticky top-4">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          Leaderboard
+        </h2>
+        <button
+          onClick={fetchLeaderboard}
+          className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+          title="Refresh leaderboard"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="max-h-96 overflow-y-auto">
+        {leaderboardData.topNFTs.length > 0 && (
+          <LeaderboardSection
+            title="Top Heroes"
+            nfts={leaderboardData.topNFTs}
+            isTop={true}
+          />
+        )}
+
+        {leaderboardData.bottomNFTs.length > 0 && (
+          <LeaderboardSection
+            title="Bottom Zeros"
+            nfts={leaderboardData.bottomNFTs}
+            isTop={false}
+          />
+        )}
+
+        {leaderboardData.topNFTs.length === 0 && leaderboardData.bottomNFTs.length === 0 && (
+          <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+            <p>No voting data yet.</p>
+            <p className="text-sm mt-1">Start voting to see the leaderboard!</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default HeroZeroLeaderboard;

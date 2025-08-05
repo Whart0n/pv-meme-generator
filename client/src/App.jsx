@@ -8,6 +8,7 @@ import './App.css';
 const Home = React.lazy(() => import('./pages/Home'));
 const Admin = React.lazy(() => import('./pages/Admin'));
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
+const HeroOrZero = React.lazy(() => import('./pages/HeroOrZero'));
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <div className="flex gap-4 items-center">
           <Link to="/" className="hover:underline font-semibold">Home</Link>
           <Link to="/leaderboard" className="hover:underline">Leaderboard</Link>
+          <Link to="/hero-or-zero" className="hover:underline">Hero or Zero</Link>
         </div>
         <DarkModeToggle />
       </nav>
@@ -31,6 +33,7 @@ function App() {
         <Routes>
           <Route path="/admin" element={<Admin />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/hero-or-zero" element={<HeroOrZero />} />
           <Route path="/" element={<Home />} />
         </Routes>
       </Suspense>
