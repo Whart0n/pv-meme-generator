@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import NFTCard from '../components/NFTCard.jsx';
 import HeroZeroLeaderboard from '../components/HeroZeroLeaderboard.jsx';
 import VoteResults from '../components/VoteResults.jsx';
+import AuthModal from '../components/AuthModal.jsx';
+import { useAuth } from '../contexts/AuthContext';
 import { getRandomNFTPair, recordVote, getUserSessionId, hasUserVotedOnPair } from '../utils/firebaseNFT.js';
 
 const HeroOrZero = () => {
@@ -11,6 +13,8 @@ const HeroOrZero = () => {
   const [error, setError] = useState(null);
   const [voteResults, setVoteResults] = useState(null);
   const [userSessionId] = useState(() => getUserSessionId());
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     loadNewPair();
@@ -153,10 +157,25 @@ const HeroOrZero = () => {
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
             Vote on MetaHero NFTs in head-to-head battles
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-2">
             Select your preferred NFT as the <span className="font-semibold text-blue-500">Hero</span> in each battle.
-            The NFT with the most votes becomes the Hero, while the other becomes the Zero.
           </p>
+          {!currentUser && (
+            <div className="mt-4">
+              <button 
+                onClick={() => setAuthModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+                Login to track your votes
+              </button>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                Login to save your voting history and prevent seeing duplicate NFT pairs
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
@@ -207,7 +226,6 @@ const HeroOrZero = () => {
                     <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">How to Vote</h3>
                     <p className="text-sm text-blue-700 dark:text-blue-300">
                       Click the <span className="font-semibold">MetaHero you prefer</span>. 
-                      The NFT with the most votes becomes the Hero, while the other becomes the Zero.
                     </p>
                   </div>
                   <button

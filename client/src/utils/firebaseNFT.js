@@ -1,4 +1,4 @@
-import { database } from '../firebase.js';
+import { database, auth } from '../firebase.js';
 import { 
   ref, 
   get, 
@@ -19,6 +19,7 @@ import { createInitialNFTData, updateNFTAfterVote, calculateNewRatings } from '.
 const NFTS_PATH = 'metahero-nfts';
 const VOTING_SESSIONS_PATH = 'voting-sessions';
 const USER_SESSIONS_PATH = 'user-sessions';
+const USERS_PATH = 'users';
 
 /**
  * Get or create NFT data in Firebase
@@ -189,19 +190,34 @@ export const recordVote = async (winnerTokenId, loserTokenId, userSessionId) => 
     
     await update(ref(database), updates);
     
-    // Record voting session
-    const votingSessionRef = push(ref(database, VOTING_SESSIONS_PATH));
-    await set(votingSessionRef, {
+    // Create vote data object
+    const timestamp = Date.now();
+    const voteData = {
       nft1_id: winnerTokenId,
       nft2_id: loserTokenId,
       winner_id: winnerTokenId,
-      timestamp: Date.now(),
+      timestamp: timestamp,
       user_session_id: userSessionId,
       elo_changes: {
         winner_change: ratingChanges.winnerChange,
         loser_change: ratingChanges.loserChange
       }
-    });
+    };
+    
+    // Record voting session in global history
+    const votingSessionRef = push(ref(database, VOTING_SESSIONS_PATH));
+    await set(votingSessionRef, voteData);
+    
+    // If user is authenticated, also record in their personal history
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      const userVoteRef = push(ref(database, `${USERS_PATH}/${currentUser.uid}/votes`));
+      await set(userVoteRef, {
+        ...voteData,
+        winnerId: winnerTokenId,  // Add simplified fields for easier querying
+        loserId: loserTokenId
+      });
+    }
     
     return {
       winner: { ...updatedWinner, tokenId: winnerTokenId },
@@ -277,6 +293,24 @@ export const getLeaderboard = async (limit = 10) => {
  */
 export const hasUserVotedOnPair = async (tokenId1, tokenId2, userSessionId) => {
   try {
+    // First check authenticated user history if logged in
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      const userVotesRef = ref(database, `${USERS_PATH}/${currentUser.uid}/votes`);
+      const userVotesSnapshot = await get(userVotesRef);
+      
+      if (userVotesSnapshot.exists()) {
+        const userVotes = userVotesSnapshot.val();
+        const hasVoted = Object.values(userVotes).some(vote => 
+          (vote.nft1_id === tokenId1 && vote.nft2_id === tokenId2) ||
+          (vote.nft1_id === tokenId2 && vote.nft2_id === tokenId1)
+        );
+        
+        if (hasVoted) return true;
+      }
+    }
+    
+    // Fallback to session-based check for non-authenticated users
     const sessionsRef = ref(database, VOTING_SESSIONS_PATH);
     const snapshot = await get(sessionsRef);
     
@@ -305,10 +339,81 @@ export const hasUserVotedOnPair = async (tokenId1, tokenId2, userSessionId) => {
  * @returns {string} User session identifier
  */
 export const getUserSessionId = () => {
+  // If user is authenticated, use their UID as the session ID
+  const currentUser = auth.currentUser;
+  if (currentUser) {
+    return `auth_${currentUser.uid}`;
+  }
+  
+  // Otherwise use a local storage session ID
   let sessionId = localStorage.getItem('heroOrZeroSessionId');
   if (!sessionId) {
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     localStorage.setItem('heroOrZeroSessionId', sessionId);
   }
   return sessionId;
+};
+
+/**
+ * Get user's voting history
+ * @returns {Promise<Array>} Array of user's votes
+ */
+export const getUserVotingHistory = async () => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return [];
+    }
+    
+    const userVotesRef = ref(database, `${USERS_PATH}/${currentUser.uid}/votes`);
+    const snapshot = await get(userVotesRef);
+    
+    if (!snapshot.exists()) {
+      return [];
+    }
+    
+    // Convert to array and sort by timestamp (most recent first)
+    return Object.entries(snapshot.val()).map(([key, vote]) => ({
+      id: key,
+      ...vote
+    })).sort((a, b) => b.timestamp - a.timestamp);
+  } catch (error) {
+    console.error('Error getting user voting history:', error);
+    return [];
+  }
+};
+
+/**
+ * Get user's voting stats
+ * @returns {Promise<Object>} User voting statistics
+ */
+export const getUserVotingStats = async () => {
+  try {
+    const votingHistory = await getUserVotingHistory();
+    
+    if (votingHistory.length === 0) {
+      return {
+        totalVotes: 0,
+        uniqueNFTs: 0
+      };
+    }
+    
+    // Calculate unique NFTs voted on
+    const uniqueNFTs = new Set();
+    votingHistory.forEach(vote => {
+      uniqueNFTs.add(vote.nft1_id);
+      uniqueNFTs.add(vote.nft2_id);
+    });
+    
+    return {
+      totalVotes: votingHistory.length,
+      uniqueNFTs: uniqueNFTs.size
+    };
+  } catch (error) {
+    console.error('Error getting user voting stats:', error);
+    return {
+      totalVotes: 0,
+      uniqueNFTs: 0
+    };
+  }
 };
