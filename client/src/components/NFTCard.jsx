@@ -120,7 +120,7 @@ const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
             href={nft.opensea_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-b-lg transition-colors duration-200 group"
+            className="flex items-center justify-center gap-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-b-lg transition-colors duration-200 group"
             title="View on OpenSea"
           >
             <span className="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-blue-500 transition-colors">View on</span>
