@@ -124,20 +124,28 @@ const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
             title="View on OpenSea"
           >
             <span className="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-blue-500 transition-colors">View on</span>
-            <img 
-              src="https://storage.googleapis.com/opensea-static/Logos/OpenSea-Full-Logo%20(dark).svg" 
-              alt="OpenSea" 
-              className="h-4 dark:hidden"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = 'https://storage.googleapis.com/opensea-static/Logos/opensea-logo.svg';
-              }}
-            />
-            <img 
-              src="https://storage.googleapis.com/opensea-static/Logos/opensea-logo.svg" 
-              alt="OpenSea" 
-              className="h-4 hidden dark:block"
-            />
+            <div className="relative h-4 flex items-center">
+              {/* Light mode logo */}
+              <img 
+                src="https://storage.googleapis.com/opensea-static/Logos/opensea-logo-dark.svg" 
+                alt="OpenSea" 
+                className="h-4 dark:hidden"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://storage.googleapis.com/opensea-static/Logos/opensea-logo.svg';
+                }}
+              />
+              {/* Dark mode logo */}
+              <img 
+                src="https://storage.googleapis.com/opensea-static/Logos/opensea-logo.svg" 
+                alt="OpenSea" 
+                className="h-4 hidden dark:block"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://opensea.io/static/images/logos/opensea-logo.svg';
+                }}
+              />
+            </div>
           </a>
         </div>
       </div>

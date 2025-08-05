@@ -2,8 +2,9 @@ import axios from 'axios';
 
 const OPENSEA_API_V2 = 'https://api.opensea.io/api/v2';
 const OPENSEA_API_V1 = 'https://api.opensea.io/api/v1';
-const METAHERO_CONTRACT = '0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2'.toLowerCase(); // Ensure lowercase for consistency
+const METAHERO_CONTRACT = '0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2'.toLowerCase();
 const OPENSEA_COLLECTION_SLUG = 'metahero-og'; // Collection slug for OpenSea URLs
+const REFERRAL_ADDRESS = '0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2'; // For OpenSea referral links
 const API_KEY = import.meta.env.VITE_OPENSEA_API_KEY;
 
 // Log the contract address being used
@@ -61,7 +62,7 @@ export const fetchNFTMetadata = async (tokenId) => {
         name: nft.name || `MetaHero #${tokenId}`,
         image: nft.image_url || nft.image_preview_url || nft.image_thumbnail_url,
         traits: nft.traits || [],
-        opensea_url: nft.opensea_url || `https://opensea.io/assets/ethereum/${METAHERO_CONTRACT}/${tokenId}?ref=0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2`,
+        opensea_url: nft.opensea_url || `https://opensea.io/assets/ethereum/${METAHERO_CONTRACT}/${tokenId}?ref=${REFERRAL_ADDRESS}`,
         description: nft.description || ''
       };
     }
@@ -85,7 +86,7 @@ export const fetchNFTMetadata = async (tokenId) => {
       name: nft.name || `MetaHero #${tokenId}`,
       image: nft.image_url || nft.image_preview_url || nft.image_thumbnail_url,
       traits: nft.traits || [],
-      opensea_url: nft.permalink || `https://opensea.io/assets/ethereum/${METAHERO_CONTRACT}/${tokenId}?ref=0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2`,
+      opensea_url: nft.permalink || `https://opensea.io/collection/${OPENSEA_COLLECTION_SLUG}/${tokenId}?ref=${REFERRAL_ADDRESS}`,
       description: nft.description || ''
     };
     return {
@@ -93,7 +94,7 @@ export const fetchNFTMetadata = async (tokenId) => {
       name: nft.name || `MetaHero #${tokenId}`,
       image: nft.image_url || nft.display_image_url,
       traits: nft.traits || [],
-      opensea_url: `https://opensea.io/assets/ethereum/${METAHERO_CONTRACT}/${tokenId}?ref=0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2`,
+      opensea_url: `https://opensea.io/collection/${OPENSEA_COLLECTION_SLUG}/${tokenId}?ref=${REFERRAL_ADDRESS}`,
       description: nft.description || ''
     };
   } catch (error) {
@@ -104,7 +105,7 @@ export const fetchNFTMetadata = async (tokenId) => {
       name: `MetaHero #${tokenId}`,
       image: 'https://i.imgur.com/y1Fgevh.png', // Fallback image
       traits: [],
-      opensea_url: `https://opensea.io/assets/ethereum/${METAHERO_CONTRACT}/${tokenId}?ref=0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2`,
+      opensea_url: `https://opensea.io/collection/${OPENSEA_COLLECTION_SLUG}/${tokenId}?ref=${REFERRAL_ADDRESS}`,
       description: 'Failed to load NFT metadata'
     };
   }
