@@ -51,6 +51,7 @@ export const createInitialNFTData = (nftMetadata) => {
     wins: 0,
     losses: 0,
     total_votes: 0,
+    random_index: Math.random(),
     last_updated: Date.now(),
     created_at: Date.now()
   };

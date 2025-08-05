@@ -45,6 +45,45 @@ PV Meme Generator/
 - PNG export (Fabric `toDataURL`).
 - Tailwind CSS responsive UI.
 
+## Hero or Zero NFT Voting
+
+A feature that allows users to vote on MetaHero NFTs in head-to-head battles, with Elo ratings and leaderboards.
+
+### Features
+- Head-to-head NFT voting with Elo rating system
+- Real-time leaderboard showing top and bottom performers
+- Duplicate vote prevention per user session
+- Responsive design for all device sizes
+- Efficient random NFT pair selection using Firestore queries
+
+### Random Index for Efficient Queries
+
+The system uses a `random_index` field on each NFT document to enable efficient random sampling:
+
+1. **New NFTs**: Automatically get a random index between 0 and 1 when created
+2. **Existing NFTs**: Can be migrated using the migration script
+3. **Querying**: Uses Firestore's `orderBy` with `startAt` and `endAt` for efficient random sampling
+
+### Running the Migration
+
+To add the `random_index` to existing NFTs:
+
+```bash
+# Install dependencies if needed
+cd client && npm install
+
+# Run the migration script
+node ../scripts/migrateAddRandomIndex.js
+```
+
+### Environment Variables
+
+Create a `.env` file in the `client` directory with:
+
+```
+VITE_OPENSEA_API_KEY=your_opensea_api_key
+```
+
 ## Customisation
 - Add more fonts: import via Google Fonts in `index.html` and list in dropdown.
 - Increase max text boxes: adjust `addTextBox` logic.

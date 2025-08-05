@@ -1,5 +1,17 @@
 import { database } from '../firebase.js';
-import { ref, get, set, update, push, query, orderByChild, limitToFirst, limitToLast } from 'firebase/database';
+import { 
+  ref, 
+  get, 
+  set, 
+  update, 
+  push, 
+  query, 
+  orderByChild, 
+  limitToFirst, 
+  limitToLast, 
+  startAt, 
+  endAt 
+} from 'firebase/database';
 import { fetchNFTMetadata } from './openSeaApi.js';
 import { createInitialNFTData, updateNFTAfterVote, calculateNewRatings } from './eloRating.js';
 
@@ -36,10 +48,92 @@ export const getOrCreateNFT = async (tokenId) => {
 };
 
 /**
- * Get two random NFTs for voting
+ * Get two random NFTs for voting using random index for efficient querying
  * @returns {Promise<Array>} Array of two NFT objects
  */
 export const getRandomNFTPair = async () => {
+  try {
+    // Generate a random number between 0 and 1 for the query
+    const randomValue = Math.random();
+    
+    // Create a query to get 2 random NFTs using the random_index
+    // We'll use the randomValue as a starting point and get the next 2 NFTs
+    const nftsRef = ref(database, NFTS_PATH);
+    const nftsQuery = query(
+      nftsRef,
+      orderByChild('random_index'),
+      startAt(randomValue),
+      limitToFirst(2)
+    );
+    
+    // Execute the query
+    const snapshot = await get(nftsQuery);
+    let nftPairs = [];
+    
+    if (snapshot.exists()) {
+      // Convert the snapshot to an array of NFTs
+      snapshot.forEach((childSnapshot) => {
+        nftPairs.push({
+          ...childSnapshot.val(),
+          tokenId: childSnapshot.key
+        });
+      });
+    }
+    
+    // If we didn't get enough NFTs from the first query, wrap around to the beginning
+    if (nftPairs.length < 2) {
+      const remainingNeeded = 2 - nftPairs.length;
+      const secondQuery = query(
+        nftsRef,
+        orderByChild('random_index'),
+        endAt(randomValue),
+        limitToFirst(remainingNeeded)
+      );
+      
+      const secondSnapshot = await get(secondQuery);
+      if (secondSnapshot.exists()) {
+        secondSnapshot.forEach((childSnapshot) => {
+          // Make sure we don't add duplicates
+          if (!nftPairs.some(nft => nft.tokenId === childSnapshot.key)) {
+            nftPairs.push({
+              ...childSnapshot.val(),
+              tokenId: childSnapshot.key
+            });
+          }
+        });
+      }
+    }
+    
+    // If we still don't have enough NFTs, create new ones
+    while (nftPairs.length < 2) {
+      const randomId = Math.floor(Math.random() * 10000) + 1;
+      const newNFT = await getOrCreateNFT(randomId.toString());
+      if (!nftPairs.some(nft => nft.tokenId === randomId.toString())) {
+        nftPairs.push({
+          ...newNFT,
+          tokenId: randomId.toString()
+        });
+      }
+    }
+    
+    // Make sure we have exactly 2 unique NFTs
+    const uniqueNFTs = Array.from(new Map(nftPairs.map(nft => [nft.tokenId, nft])).values());
+    
+    // If we somehow ended up with more than 2, take the first 2
+    return uniqueNFTs.slice(0, 2);
+  } catch (error) {
+    console.error('Error getting random NFT pair:', error);
+    // Fallback to the old method if there's an error
+    return getRandomNFTPairFallback();
+  }
+};
+
+/**
+ * Fallback method to get random NFTs if the primary method fails
+ * This is kept for backward compatibility
+ * @private
+ */
+const getRandomNFTPairFallback = async () => {
   try {
     // Get all NFTs to select from
     const nftsRef = ref(database, NFTS_PATH);
@@ -75,7 +169,7 @@ export const getRandomNFTPair = async () => {
       { ...nft2, tokenId: selectedIds[1] }
     ];
   } catch (error) {
-    console.error('Error getting random NFT pair:', error);
+    console.error('Error in fallback random NFT pair generation:', error);
     throw error;
   }
 };
