@@ -117,37 +117,37 @@ export const fetchNFTMetadata = async (tokenId) => {
  */
 export const fetchCollectionStats = async () => {
   try {
-    console.log('Fetching collection stats...');
+    console.log('Fetching collection stats for MetaHero...');
     
-    // First try v2 API with contract address
-    const v2Response = await openSeaV2Api.get(`/collections/${METAHERO_CONTRACT}/stats`, {
+    // First try v2 API with collection slug
+    const v2Response = await openSeaV2Api.get(`/collections/${OPENSEA_COLLECTION_SLUG}/stats`, {
       validateStatus: (status) => status < 500
     });
 
-    if (v2Response.status === 200) {
-      console.log('Successfully fetched stats from v2 API');
-      return v2Response.data.stats || v2Response.data; // Handle both formats
+    if (v2Response.status === 200 && v2Response.data) {
+      console.log('Successfully fetched stats from v2 API:', v2Response.data);
+      return v2Response.data;
     }
 
-    // Fallback to v1 API with contract address
+    // Fallback to v1 API with collection slug
     console.log('v2 API failed, trying v1 API...');
     const v1Response = await openSeaV1Api.get(
-      `/collection/${METAHERO_CONTRACT}/stats`,
+      `/collection/${OPENSEA_COLLECTION_SLUG}/stats`,
       { validateStatus: (status) => status < 500 }
     );
 
-    if (v1Response.status === 200) {
-      console.log('Successfully fetched stats from v1 API');
-      return v1Response.data.stats || v1Response.data;
+    if (v1Response.status === 200 && v1Response.data && v1Response.data.stats) {
+      console.log('Successfully fetched stats from v1 API:', v1Response.data.stats);
+      return v1Response.data.stats;
     }
     
-    throw new Error(`Failed to fetch collection stats: ${v1Response.status}`);
+    throw new Error(`Failed to fetch collection stats: v2=${v2Response.status}, v1=${v1Response.status}`);
   } catch (error) {
     console.error('Error fetching collection stats:', error);
     // Return default stats instead of throwing
     return {
       total_volume: 0,
-      total_supply: 10000, // Default value
+      total_supply: 8144, // Current known size
       num_owners: 0,
       floor_price: 0,
       average_price: 0
@@ -232,18 +232,46 @@ export const fetchCollectionNFTs = async (limit = 20, cursor = null) => {
 };
 
 /**
- * Get random token IDs from a range (assuming MetaHero has sequential token IDs)
- * @param {number} maxTokenId - Maximum token ID in collection
+ * Get random token IDs from the collection using dynamic collection size
  * @param {number} count - Number of random IDs to generate
- * @returns {Array<string>} Array of random token IDs
+ * @returns {Promise<Array<string>>} Array of random token IDs
  */
-export const getRandomTokenIds = (maxTokenId = 10000, count = 2) => {
-  const tokenIds = [];
-  while (tokenIds.length < count) {
-    const randomId = Math.floor(Math.random() * maxTokenId) + 1;
-    if (!tokenIds.includes(randomId.toString())) {
-      tokenIds.push(randomId.toString());
+export const getRandomTokenIds = async (count = 2) => {
+  try {
+    // Fetch current collection stats to get total supply
+    const stats = await fetchCollectionStats();
+    const maxTokenId = stats.total_supply || 8144; // Fallback to known size
+    
+    console.log(`Generating ${count} random token IDs from collection of size ${maxTokenId}`);
+    
+    const tokenIds = [];
+    const usedIds = new Set();
+    
+    while (tokenIds.length < count) {
+      const randomId = Math.floor(Math.random() * maxTokenId) + 1;
+      if (!usedIds.has(randomId)) {
+        usedIds.add(randomId);
+        tokenIds.push(randomId.toString());
+      }
     }
+    
+    console.log('Generated random token IDs:', tokenIds);
+    return tokenIds;
+  } catch (error) {
+    console.error('Error generating random token IDs:', error);
+    // Fallback to simple random generation
+    const tokenIds = [];
+    const usedIds = new Set();
+    const maxTokenId = 8144; // Known collection size
+    
+    while (tokenIds.length < count) {
+      const randomId = Math.floor(Math.random() * maxTokenId) + 1;
+      if (!usedIds.has(randomId)) {
+        usedIds.add(randomId);
+        tokenIds.push(randomId.toString());
+      }
+    }
+    
+    return tokenIds;
   }
-  return tokenIds;
 };

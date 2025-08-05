@@ -12,7 +12,7 @@ import {
   startAt, 
   endAt 
 } from 'firebase/database';
-import { fetchNFTMetadata } from './openSeaApi.js';
+import { fetchNFTMetadata, getRandomTokenIds } from './openSeaApi.js';
 import { createInitialNFTData, updateNFTAfterVote, calculateNewRatings } from './eloRating.js';
 
 // Database paths
@@ -135,41 +135,27 @@ export const getRandomNFTPair = async () => {
  */
 const getRandomNFTPairFallback = async () => {
   try {
-    // Get all NFTs to select from
-    const nftsRef = ref(database, NFTS_PATH);
-    const snapshot = await get(nftsRef);
+    console.log('Using fallback method to get random NFT pair...');
     
-    let availableTokenIds = [];
+    // Use the dynamic collection size from OpenSea API
+    const tokenIds = await getRandomTokenIds(2);
     
-    if (snapshot.exists()) {
-      // Use existing NFTs from database
-      availableTokenIds = Object.keys(snapshot.val());
+    console.log('Generated random token IDs:', tokenIds);
+    
+    // Fetch NFT data for both tokens
+    const nftPromises = tokenIds.map(tokenId => getOrCreateNFT(tokenId));
+    const nfts = await Promise.all(nftPromises);
+    
+    // Ensure we have valid NFTs
+    const validNfts = nfts.filter(nft => nft && nft.tokenId);
+    
+    if (validNfts.length < 2) {
+      throw new Error('Could not fetch enough valid NFTs');
     }
     
-    // If we have less than 50 NFTs, add some random ones
-    while (availableTokenIds.length < 50) {
-      const randomId = Math.floor(Math.random() * 10000) + 1;
-      if (!availableTokenIds.includes(randomId.toString())) {
-        availableTokenIds.push(randomId.toString());
-      }
-    }
-    
-    // Select two random different NFTs
-    const shuffled = availableTokenIds.sort(() => 0.5 - Math.random());
-    const selectedIds = shuffled.slice(0, 2);
-    
-    // Get or create both NFTs
-    const [nft1, nft2] = await Promise.all([
-      getOrCreateNFT(selectedIds[0]),
-      getOrCreateNFT(selectedIds[1])
-    ]);
-    
-    return [
-      { ...nft1, tokenId: selectedIds[0] },
-      { ...nft2, tokenId: selectedIds[1] }
-    ];
+    return validNfts.slice(0, 2);
   } catch (error) {
-    console.error('Error in fallback random NFT pair generation:', error);
+    console.error('Error in fallback random NFT pair:', error);
     throw error;
   }
 };
