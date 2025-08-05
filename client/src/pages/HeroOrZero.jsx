@@ -164,27 +164,41 @@ const HeroOrZero = () => {
           <div className="flex-1">
             {nftPair[0] && nftPair[1] ? (
               <>
-                {/* VS Header */}
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-red-500 to-green-500 rounded-full text-white font-bold text-xl">
-                    VS
+                  {/* NFT Cards with VS in the middle */}
+                <div className="relative flex flex-col md:flex-row items-center justify-center gap-4 md:gap-12">
+                  {/* First NFT */}
+                  <div className="w-full md:w-5/12">
+                    <NFTCard
+                      nft={nftPair[0]}
+                      onVote={handleVote}
+                      isVoting={voting}
+                      showStats={true}
+                    />
                   </div>
-                </div>
-
-                {/* NFT Cards */}
-                <div className="grid md:grid-cols-2 gap-8">
-                  <NFTCard
-                    nft={nftPair[0]}
-                    onVote={handleVote}
-                    isVoting={voting}
-                    showStats={true}
-                  />
-                  <NFTCard
-                    nft={nftPair[1]}
-                    onVote={handleVote}
-                    isVoting={voting}
-                    showStats={true}
-                  />
+                  
+                  {/* VS Badge - Only shown on medium screens and up */}
+                  <div className="hidden md:flex items-center justify-center">
+                    <div className="flex items-center justify-center w-24 h-24 bg-gradient-to-r from-red-500 to-green-500 rounded-full text-white font-bold text-2xl shadow-lg">
+                      VS
+                    </div>
+                  </div>
+                  
+                  {/* Mobile VS Badge - Only shown on small screens */}
+                  <div className="md:hidden my-4">
+                    <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-red-500 to-green-500 rounded-full text-white font-bold text-xl shadow-md">
+                      VS
+                    </div>
+                  </div>
+                  
+                  {/* Second NFT */}
+                  <div className="w-full md:w-5/12">
+                    <NFTCard
+                      nft={nftPair[1]}
+                      onVote={handleVote}
+                      isVoting={voting}
+                      showStats={true}
+                    />
+                  </div>
                 </div>
 
                 {/* Instructions */}

@@ -26,14 +26,22 @@ const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform duration-200 hover:scale-105 flex flex-col h-full">
       {/* NFT Image */}
-      <div className="relative flex-1">
-        <img
-          src={nft.image || 'https://via.placeholder.com/400x400?text=Loading...'}
-          alt={nft.name}
-          className="w-full h-64 object-cover"
-          loading="lazy"
-          onError={handleImageError}
-        />
+      <div className="relative" style={{ paddingTop: '100%' }}>
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <img
+            src={nft.image || 'https://via.placeholder.com/400x400?text=Loading...'}
+            alt={nft.name}
+            className="max-w-full max-h-full object-contain p-2"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              objectPosition: 'center'
+            }}
+            loading="lazy"
+            onError={handleImageError}
+          />
+        </div>
         {showStats && (
           <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-sm">
             Elo: {nft.elo_score || 'N/A'}
