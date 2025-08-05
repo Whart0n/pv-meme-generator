@@ -56,6 +56,31 @@ A feature that allows users to vote on MetaHero NFTs in head-to-head battles, wi
 - Responsive design for all device sizes
 - Efficient random NFT pair selection using Firestore queries
 
+### Migration Scripts
+
+If you have existing NFT data in your Firebase database, you may need to run migration scripts to add new features:
+
+#### Adding Random Index to Existing NFTs
+
+```bash
+node scripts/migrateAddRandomIndex.js
+```
+
+This script adds a `random_index` field to all existing NFTs in your database, which is required for the efficient random NFT pair selection feature.
+
+#### Fixing Contract Addresses
+
+```bash
+node scripts/fixContractAddresses.js
+```
+
+This script fixes any NFT records that may have been created with incorrect contract addresses. It updates:
+- OpenSea URLs to use the correct MetaHero contract address
+- Image URLs that may reference the wrong contract
+- Ensures all NFTs have properly formatted OpenSea links
+
+**Important**: Make sure to set your `FIREBASE_DATABASE_URL` environment variable before running this script.
+
 ### Random Index for Efficient Queries
 
 The system uses a `random_index` field on each NFT document to enable efficient random sampling:

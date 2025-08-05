@@ -229,10 +229,21 @@ export const getLeaderboard = async (limit = 10) => {
     }
     
     const nftsData = snapshot.val();
-    const nftsArray = Object.entries(nftsData).map(([tokenId, data]) => ({
-      ...data,
-      tokenId
-    }));
+    const nftsArray = Object.entries(nftsData).map(([tokenId, data]) => {
+      // Ensure we have the correct OpenSea URL with the right contract address
+      const correctOpenseaUrl = `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${tokenId}`;
+      
+      return {
+        ...data,
+        tokenId,
+        // Update OpenSea URL to use correct contract address
+        opensea_url: correctOpenseaUrl,
+        // If the image URL contains the wrong contract address, try to fix it
+        image: data.image && data.image.includes('0x6dc6001535e15b9def7b0fcf0e7e4b9c0f7c7c7c') 
+          ? data.image.replace('0x6dc6001535e15b9def7b0fcf0e7e4b9c0f7c7c7c', '0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2')
+          : data.image
+      };
+    });
     
     // Sort by Elo score
     nftsArray.sort((a, b) => b.elo_score - a.elo_score);
