@@ -41,15 +41,15 @@ const VoteResults = ({ winner, loser, ratingChanges, onNextPair }) => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Wins:</span>
-                  <span className="font-semibold">{winner.wins}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{winner.wins}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Losses:</span>
-                  <span className="font-semibold">{winner.losses}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{winner.losses}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Total Votes:</span>
-                  <span className="font-semibold">{winner.total_votes}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{winner.total_votes}</span>
                 </div>
               </div>
             </div>
@@ -81,15 +81,15 @@ const VoteResults = ({ winner, loser, ratingChanges, onNextPair }) => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Wins:</span>
-                  <span className="font-semibold">{loser.wins}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{loser.wins}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Losses:</span>
-                  <span className="font-semibold">{loser.losses}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{loser.losses}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Total Votes:</span>
-                  <span className="font-semibold">{loser.total_votes}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{loser.total_votes}</span>
                 </div>
               </div>
             </div>
