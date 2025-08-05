@@ -69,29 +69,7 @@ const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
           </div>
         )}
 
-        {/* Traits */}
-        {nft.traits && nft.traits.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Traits:
-            </h4>
-            <div className="flex flex-wrap gap-1">
-              {nft.traits.slice(0, 6).map((trait, index) => (
-                <span
-                  key={index}
-                  className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded"
-                >
-                  {trait.trait_type}: {trait.value}
-                </span>
-              ))}
-              {nft.traits.length > 6 && (
-                <span className="inline-block bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs px-2 py-1 rounded">
-                  +{nft.traits.length - 6} more
-                </span>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Traits removed to reduce Firebase data usage */}
 
 
 

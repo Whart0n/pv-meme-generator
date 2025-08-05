@@ -1,0 +1,51 @@
+{
+  "rules": {
+    ".read": "auth != null || !data.exists() || data.child('public').val() === true",
+    ".write": "auth != null",
+    
+    "metahero-nfts": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      "$nftId": {
+        ".read": true,
+        // Allow batch updates for Elo ratings
+        ".write": true,
+        "elo_score": { ".validate": "newData.isNumber()" },
+        "wins": { ".validate": "newData.isNumber()" },
+        "losses": { ".validate": "newData.isNumber()" },
+        "total_votes": { ".validate": "newData.isNumber()" }
+      }
+    },
+    
+    "voting-sessions": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".write": true,
+      ".indexOn": ["timestamp"]
+    },
+    
+    "user-sessions": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".write": true
+    },
+    
+    "memes": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["upvotes", "templateId", "createdAt"]
+    },
+    
+    "users": {
+      ".read": "auth != null",
+      ".write": "auth != null && (data.child(auth.uid).val() === null || auth.uid === $uid)",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    
+    "admin": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    }
+  }
+}
