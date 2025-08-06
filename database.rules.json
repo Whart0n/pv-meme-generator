@@ -3,6 +3,12 @@
     ".read": "auth != null || !data.exists() || data.child('public').val() === true",
     ".write": "auth != null",
     
+    "templates": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".indexOn": ["order", "name"]
+    },
+    
     "metahero-nfts": {
       ".read": true,
       ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
