@@ -1,10 +1,11 @@
 import axios from 'axios';
+import { CORRECT_CONTRACT, getCorrectOpenSeaUrl } from './contractUtils.js';
 
 const OPENSEA_API_V2 = 'https://api.opensea.io/api/v2';
 const OPENSEA_API_V1 = 'https://api.opensea.io/api/v1';
-const METAHERO_CONTRACT = '0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2'.toLowerCase();
+const METAHERO_CONTRACT = CORRECT_CONTRACT.toLowerCase();
 const OPENSEA_COLLECTION_SLUG = 'metahero-og'; // Collection slug for OpenSea URLs
-const REFERRAL_ADDRESS = '0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2'; // For OpenSea referral links
+const REFERRAL_ADDRESS = CORRECT_CONTRACT; // For OpenSea referral links
 const API_KEY = import.meta.env.VITE_OPENSEA_API_KEY;
 
 // Log the contract address being used

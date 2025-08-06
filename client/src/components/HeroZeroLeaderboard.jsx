@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getLeaderboard } from '../utils/firebaseNFT.js';
 import * as IndexedDB from '../utils/indexedDBCache.js';
+import { fixImageUrl } from '../utils/contractUtils.js';
 import NFTSearchModal from './NFTSearchModal';
 
 const HeroZeroLeaderboard = () => {
@@ -102,7 +103,7 @@ const HeroZeroLeaderboard = () => {
             {/* OpenSea Link */}
             <div className="flex-shrink-0">
               <a
-                href={`https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${nft.tokenId}`}
+                href={nft.opensea_url || `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${nft.tokenId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-1.5 text-gray-400 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"

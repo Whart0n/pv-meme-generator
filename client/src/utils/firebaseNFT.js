@@ -17,6 +17,7 @@ import { fetchNFTMetadata, getRandomTokenIds } from './openSeaApi.js';
 import { createInitialNFTData, updateNFTAfterVote, calculateNewRatings, INITIAL_ELO } from './eloRating.js';
 import * as IndexedDB from './indexedDBCache.js';
 import { firebaseUsageMonitor } from './firebaseUsageMonitor.js';
+import { fixImageUrl, getCorrectOpenSeaUrl } from './contractUtils.js';
 
 // Database paths
 const NFTS_PATH = 'metahero-nfts';

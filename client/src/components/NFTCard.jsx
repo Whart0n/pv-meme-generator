@@ -1,4 +1,6 @@
 import React from 'react';
+import { fixImageUrl } from '../utils/contractUtils.js';
+import { recordBrokenImage } from '../utils/imageMonitor.js';
 
 const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
   if (!nft) {
@@ -20,7 +22,35 @@ const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
   // Handle missing or broken images
   const handleImageError = (e) => {
     e.target.onerror = null; // Prevent infinite loop
-    e.target.src = 'https://via.placeholder.com/400x400?text=Image+Not+Available';
+    
+    // Log the error for debugging
+    console.error(`Image failed to load: ${e.target.src}`);
+    
+    // Record the broken image for monitoring
+    if (nft) {
+      recordBrokenImage(
+        e.target.src, 
+        nft.tokenId, 
+        'NFTCard' + (showStats ? '-Stats' : onVote ? '-Voting' : '')
+      );
+      
+      console.log(`Attempting to fix broken image for MetaHero #${nft.tokenId}`);
+      
+      // Try to fix the URL one more time
+      const fixedUrl = fixImageUrl(e.target.src);
+      if (fixedUrl && fixedUrl !== e.target.src) {
+        console.log(`Retrying with fixed URL: ${fixedUrl}`);
+        e.target.src = fixedUrl;
+        return; // Give the fixed URL a chance to load
+      }
+    }
+    
+    // Use a more informative placeholder that shows the NFT ID if available
+    const placeholderText = nft && nft.tokenId 
+      ? `MetaHero+%23${nft.tokenId}+Image+Not+Available` 
+      : 'Image+Not+Available';
+      
+    e.target.src = `https://via.placeholder.com/400x400?text=${placeholderText}`;
   };
 
   return (
@@ -34,7 +64,7 @@ const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
       <div className="relative" style={{ paddingTop: '100%' }}>
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700 overflow-hidden">
           <img
-            src={nft.image || 'https://via.placeholder.com/400x400?text=Loading...'}
+            src={fixImageUrl(nft.image) || 'https://via.placeholder.com/400x400?text=Loading...'}
             alt={nft.name}
             className="max-w-full max-h-full object-contain p-2"
             style={{
