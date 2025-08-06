@@ -14,7 +14,7 @@ import {
   endAt 
 } from 'firebase/database';
 import { fetchNFTMetadata, getRandomTokenIds } from './openSeaApi.js';
-import { createInitialNFTData, updateNFTAfterVote, calculateNewRatings } from './eloRating.js';
+import { createInitialNFTData, updateNFTAfterVote, calculateNewRatings, INITIAL_ELO } from './eloRating.js';
 import * as IndexedDB from './indexedDBCache.js';
 
 // Database paths
@@ -250,8 +250,8 @@ export const prefetchNFTPairs = async (count = 5) => {
   try {
     // Check if we already have enough pairs cached
     const db = await IndexedDB.initIndexedDB();
-    const transaction = db.transaction([IndexedDB.STORES.PAIRS], 'readonly');
-    const store = transaction.objectStore(IndexedDB.STORES.PAIRS);
+    const transaction = db.transaction(['pairs'], 'readonly');
+    const store = transaction.objectStore('pairs');
     const countRequest = store.count();
     
     return new Promise((resolve, reject) => {
@@ -327,98 +327,185 @@ const getRandomNFTPairFallback = async () => {
  */
 export const recordVote = async (winnerTokenId, loserTokenId, userSessionId) => {
   try {
+    // Initialize winner and loser with default values
+    let winner = {
+      elo_score: INITIAL_ELO,
+      wins: 0,
+      losses: 0,
+      total_votes: 0,
+      name: `MetaHero #${winnerTokenId}`,
+      image_url: '',
+      external_url: `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${winnerTokenId}`,
+      tokenId: winnerTokenId.toString()
+    };
+
+    let loser = {
+      elo_score: INITIAL_ELO,
+      wins: 0,
+      losses: 0,
+      total_votes: 0,
+      name: `MetaHero #${loserTokenId}`,
+      image_url: '',
+      external_url: `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${loserTokenId}`,
+      tokenId: loserTokenId.toString()
+    };
+
     // Check memory cache first to reduce Firebase reads
-    let winner, loser;
     let needWinnerFetch = true, needLoserFetch = true;
-    
+
     // Check memory cache
     const cachedWinner = nftCache.get(winnerTokenId);
     if (cachedWinner && (Date.now() - cachedWinner.cachedAt < MEMORY_CACHE_EXPIRY)) {
-      winner = cachedWinner.data;
+      winner = { ...winner, ...cachedWinner.data };
       needWinnerFetch = false;
     }
-    
+
     const cachedLoser = nftCache.get(loserTokenId);
     if (cachedLoser && (Date.now() - cachedLoser.cachedAt < MEMORY_CACHE_EXPIRY)) {
-      loser = cachedLoser.data;
+      loser = { ...loser, ...cachedLoser.data };
       needLoserFetch = false;
     }
-    
-    // Check IndexedDB for any missing NFTs
+
+    // Check IndexedDB if needed
     if (needWinnerFetch) {
       const indexedDBWinner = await IndexedDB.getNFT(winnerTokenId);
       if (indexedDBWinner) {
-        winner = indexedDBWinner;
-        needWinnerFetch = false;
+        winner = { ...winner, ...indexedDBWinner };
         // Update memory cache
-        nftCache.set(winnerTokenId, { data: winner, cachedAt: Date.now() });
+        nftCache.set(winnerTokenId, { data: { ...winner }, cachedAt: Date.now() });
+        needWinnerFetch = false;
       }
     }
-    
+
     if (needLoserFetch) {
       const indexedDBLoser = await IndexedDB.getNFT(loserTokenId);
       if (indexedDBLoser) {
-        loser = indexedDBLoser;
-        needLoserFetch = false;
+        loser = { ...loser, ...indexedDBLoser };
         // Update memory cache
-        nftCache.set(loserTokenId, { data: loser, cachedAt: Date.now() });
+        nftCache.set(loserTokenId, { data: { ...loser }, cachedAt: Date.now() });
+        needLoserFetch = false;
       }
     }
-    
-    // Fetch from Firebase if needed
-    const fetchPromises = [];
-    if (needWinnerFetch) {
-      fetchPromises.push(get(ref(database, `${NFTS_PATH}/${winnerTokenId}`)));
-    }
-    if (needLoserFetch) {
-      fetchPromises.push(get(ref(database, `${NFTS_PATH}/${loserTokenId}`)));
-    }
-    
-    if (fetchPromises.length > 0) {
-      const snapshots = await Promise.all(fetchPromises);
-      
-      let winnerSnapshot, loserSnapshot;
-      if (needWinnerFetch && needLoserFetch) {
-        [winnerSnapshot, loserSnapshot] = snapshots;
-      } else if (needWinnerFetch) {
-        [winnerSnapshot] = snapshots;
-      } else {
-        [loserSnapshot] = snapshots;
-      }
-      
-      if (needWinnerFetch) {
-        if (!winnerSnapshot.exists()) {
-          throw new Error(`Winner NFT ${winnerTokenId} not found`);
-        }
-        winner = winnerSnapshot.val();
+
+    // If still missing, fetch from Firebase
+    if (needWinnerFetch || needLoserFetch) {
+      const [winnerSnapshot, loserSnapshot] = await Promise.all([
+        needWinnerFetch ? get(ref(database, `${NFTS_PATH}/${winnerTokenId}`)) : Promise.resolve(null),
+        needLoserFetch ? get(ref(database, `${NFTS_PATH}/${loserTokenId}`)) : Promise.resolve(null)
+      ]);
+
+      if (needWinnerFetch && winnerSnapshot?.exists()) {
+        winner = { ...winner, ...winnerSnapshot.val() };
+        // Ensure required fields are set
+        winner.elo_score = winner.elo_score || INITIAL_ELO;
+        winner.wins = winner.wins || 0;
+        winner.losses = winner.losses || 0;
+        winner.total_votes = winner.total_votes || 0;
         // Update caches
-        nftCache.set(winnerTokenId, { data: winner, cachedAt: Date.now() });
+        nftCache.set(winnerTokenId, { data: { ...winner }, cachedAt: Date.now() });
         await IndexedDB.storeNFT({ ...winner, tokenId: winnerTokenId });
       }
-      
-      if (needLoserFetch) {
-        if (!loserSnapshot.exists()) {
-          throw new Error(`Loser NFT ${loserTokenId} not found`);
-        }
-        loser = loserSnapshot.val();
+
+      if (needLoserFetch && loserSnapshot?.exists()) {
+        loser = { ...loser, ...loserSnapshot.val() };
+        // Ensure required fields are set
+        loser.elo_score = loser.elo_score || INITIAL_ELO;
+        loser.wins = loser.wins || 0;
+        loser.losses = loser.losses || 0;
+        loser.total_votes = loser.total_votes || 0;
         // Update caches
-        nftCache.set(loserTokenId, { data: loser, cachedAt: Date.now() });
+        nftCache.set(loserTokenId, { data: { ...loser }, cachedAt: Date.now() });
         await IndexedDB.storeNFT({ ...loser, tokenId: loserTokenId });
       }
     }
+
+    console.log('Recording vote:', { winnerTokenId, loserTokenId });
+
+    // Ensure all required fields are properly initialized for both NFTs
+    const winnerFinal = {
+      // Preserve all existing properties
+      ...winner,
+      // Ensure required fields have default values
+      elo_score: typeof winner.elo_score === 'number' ? winner.elo_score : INITIAL_ELO,
+      wins: typeof winner.wins === 'number' ? winner.wins : 0,
+      losses: typeof winner.losses === 'number' ? winner.losses : 0,
+      total_votes: typeof winner.total_votes === 'number' ? winner.total_votes : 0,
+      last_updated: Date.now(),
+      // Ensure tokenId is set
+      tokenId: winnerTokenId.toString(),
+      // Ensure name and image_url exist
+      name: winner.name || `MetaHero #${winnerTokenId}`,
+      image_url: winner.image_url || '',
+      external_url: winner.external_url || `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${winnerTokenId}`
+    };
+
+    const loserFinal = {
+      // Preserve all existing properties
+      ...loser,
+      // Ensure required fields have default values
+      elo_score: typeof loser.elo_score === 'number' ? loser.elo_score : INITIAL_ELO,
+      wins: typeof loser.wins === 'number' ? loser.wins : 0,
+      losses: typeof loser.losses === 'number' ? loser.losses : 0,
+      total_votes: typeof loser.total_votes === 'number' ? loser.total_votes : 0,
+      last_updated: Date.now(),
+      // Ensure tokenId is set
+      tokenId: loserTokenId.toString(),
+      // Ensure name and image_url exist
+      name: loser.name || `MetaHero #${loserTokenId}`,
+      image_url: loser.image_url || '',
+      external_url: loser.external_url || `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${loserTokenId}`
+    };
+
+    console.log('Final NFT data before Elo calculation:', { winner: winnerFinal, loser: loserFinal });
+
+    // Calculate new Elo ratings
+    const { winnerRating, loserRating, winnerChange, loserChange } = calculateNewRatings(
+      winnerFinal.elo_score,
+      loserFinal.elo_score
+    );
+
+    console.log('New ratings:', { winnerRating, loserRating, winnerChange, loserChange });
+
+    // Prepare final NFT data with all required fields
+    const prepareFinalNFTData = (nft, isWinner, newRating, tokenId) => {
+      const updated = updateNFTAfterVote(nft, isWinner, newRating);
+      
+      // Ensure all required fields exist
+      const finalData = {
+        ...updated,
+        elo_score: typeof updated.elo_score === 'number' ? updated.elo_score : INITIAL_ELO,
+        wins: typeof updated.wins === 'number' ? updated.wins : 0,
+        losses: typeof updated.losses === 'number' ? updated.losses : 0,
+        total_votes: typeof updated.total_votes === 'number' ? updated.total_votes : 0,
+        tokenId: tokenId.toString(),
+        name: updated.name || `MetaHero #${tokenId}`,
+        image_url: updated.image_url || '',
+        external_url: updated.external_url || `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${tokenId}`,
+        last_updated: Date.now()
+      };
+      
+      // Validate required fields
+      const requiredFields = ['elo_score', 'wins', 'losses', 'total_votes', 'tokenId'];
+      const missingFields = requiredFields.filter(field => finalData[field] === undefined);
+      
+      if (missingFields.length > 0) {
+        console.error(`Missing required fields for token ${tokenId}:`, missingFields);
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+      
+      return finalData;
+    };
     
-    // Calculate new ratings
-    const { winnerNewRating, loserNewRating, winnerChange, loserChange } = 
-      calculateNewRatings(winner.rating, loser.rating);
+    // Prepare final data for both NFTs
+    const finalWinner = prepareFinalNFTData(winnerFinal, true, winnerRating, winnerTokenId);
+    const finalLoser = prepareFinalNFTData(loserFinal, false, loserRating, loserTokenId);
     
-    // Update NFT data
-    const winnerUpdate = updateNFTAfterVote(winner, true, winnerNewRating);
-    const loserUpdate = updateNFTAfterVote(loser, false, loserNewRating);
+    console.log('Final data for Firebase:', { winner: finalWinner, loser: finalLoser });
     
-    // Batch update both NFTs in a single operation
+    // Prepare updates for Firebase
     const updates = {};
-    updates[`${NFTS_PATH}/${winnerTokenId}`] = winnerUpdate;
-    updates[`${NFTS_PATH}/${loserTokenId}`] = loserUpdate;
+    updates[`${NFTS_PATH}/${winnerTokenId}`] = finalWinner;
+    updates[`${NFTS_PATH}/${loserTokenId}`] = finalLoser;
     
     // We no longer store voting history for regular users
     // Only record session data for admin users
@@ -450,33 +537,32 @@ export const recordVote = async (winnerTokenId, loserTokenId, userSessionId) => 
     await update(ref(database), updates);
     
     // Update memory cache with new data
-    const updatedWinner = { ...winner, ...winnerUpdate };
-    const updatedLoser = { ...loser, ...loserUpdate };
-    nftCache.set(winnerTokenId, { data: updatedWinner, cachedAt: Date.now() });
-    nftCache.set(loserTokenId, { data: updatedLoser, cachedAt: Date.now() });
+    nftCache.set(winnerTokenId, { data: finalWinner, cachedAt: Date.now() });
+    nftCache.set(loserTokenId, { data: finalLoser, cachedAt: Date.now() });
     
     // Update IndexedDB cache
     await Promise.all([
-      IndexedDB.storeNFT({ ...updatedWinner, tokenId: winnerTokenId }),
-      IndexedDB.storeNFT({ ...updatedLoser, tokenId: loserTokenId })
+      IndexedDB.storeNFT({ ...finalWinner, tokenId: winnerTokenId }),
+      IndexedDB.storeNFT({ ...finalLoser, tokenId: loserTokenId })
     ]);
     
     // Invalidate leaderboard cache if this vote might affect it
     leaderboardCache = null;
+    await IndexedDB.invalidateLeaderboard();
     
     return {
       winner: {
-        ...winnerUpdate,
+        ...finalWinner,
         tokenId: winnerTokenId,
-        oldRating: winner.rating,
-        newRating: winnerNewRating,
+        oldRating: winnerFinal.elo_score,
+        newRating: winnerRating,
         change: winnerChange
       },
       loser: {
-        ...loserUpdate,
+        ...finalLoser,
         tokenId: loserTokenId,
-        oldRating: loser.rating,
-        newRating: loserNewRating,
+        oldRating: loserFinal.elo_score,
+        newRating: loserRating,
         change: loserChange
       }
     };

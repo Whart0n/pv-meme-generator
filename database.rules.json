@@ -6,9 +6,9 @@
     "metahero-nfts": {
       ".read": true,
       ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".indexOn": ["elo_score"],
       "$nftId": {
         ".read": true,
-        // Allow batch updates for Elo ratings
         ".write": true,
         "elo_score": { ".validate": "newData.isNumber()" },
         "wins": { ".validate": "newData.isNumber()" },
@@ -36,7 +36,7 @@
     
     "users": {
       ".read": "auth != null",
-      ".write": "auth != null && (data.child(auth.uid).val() === null || auth.uid === $uid)",
+      ".write": "auth != null && (!data.exists() || !data.hasChildren())",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid"

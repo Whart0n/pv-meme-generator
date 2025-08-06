@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { database, auth } from '../firebase';
 import { ref, push, onValue, remove } from 'firebase/database';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
@@ -107,7 +108,7 @@ const Admin = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Upload New Meme Template</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
         <button
           onClick={handleLogout}
           className="bg-gray-700 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded"
@@ -115,6 +116,10 @@ const Admin = () => {
           Logout
         </button>
       </div>
+      
+      {/* Admin tools section removed as migration is no longer needed */}
+      
+      <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Upload New Meme Template</h2>
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
         <input type="file" onChange={handleFileChange} className="mb-4 text-gray-900 dark:text-gray-300" />
         <button

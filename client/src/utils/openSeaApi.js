@@ -237,36 +237,83 @@ export const fetchCollectionNFTs = async (limit = 20, cursor = null) => {
  * @returns {Promise<Array<string>>} Array of random token IDs
  */
 export const getRandomTokenIds = async (count = 2) => {
+  // Default values
+  const KNOWN_COLLECTION_SIZE = 8144; // Last known collection size
+  const MIN_VALID_ID = 1;
+  const MAX_ATTEMPTS = 50; // Prevent infinite loops
+  
   try {
-    // Fetch current collection stats to get total supply
-    const stats = await fetchCollectionStats();
-    const maxTokenId = stats.total_supply || 8144; // Fallback to known size
+    // Try to fetch current collection stats to get total supply
+    let maxTokenId = KNOWN_COLLECTION_SIZE;
+    
+    try {
+      const stats = await fetchCollectionStats();
+      // Validate the stats response
+      if (stats && typeof stats.total_supply === 'number' && stats.total_supply > 0) {
+        maxTokenId = Math.floor(stats.total_supply);
+        console.log(`Using collection size from API: ${maxTokenId}`);
+      } else {
+        console.warn('Invalid total_supply from API, using fallback');
+      }
+    } catch (apiError) {
+      console.warn('Error fetching collection stats, using fallback size:', apiError.message);
+    }
+    
+    // Ensure we have a valid maxTokenId
+    if (typeof maxTokenId !== 'number' || maxTokenId < MIN_VALID_ID) {
+      console.warn(`Invalid maxTokenId: ${maxTokenId}, using fallback`);
+      maxTokenId = KNOWN_COLLECTION_SIZE;
+    }
     
     console.log(`Generating ${count} random token IDs from collection of size ${maxTokenId}`);
     
     const tokenIds = [];
     const usedIds = new Set();
+    let attempts = 0;
     
-    while (tokenIds.length < count) {
+    while (tokenIds.length < count && attempts < MAX_ATTEMPTS) {
+      attempts++;
       const randomId = Math.floor(Math.random() * maxTokenId) + 1;
-      if (!usedIds.has(randomId)) {
+      
+      // Skip if we've already used this ID
+      if (usedIds.has(randomId)) {
+        continue;
+      }
+      
+      // Ensure the ID is within valid range
+      if (randomId >= MIN_VALID_ID && randomId <= maxTokenId) {
         usedIds.add(randomId);
         tokenIds.push(randomId.toString());
       }
     }
     
+    // If we couldn't generate enough unique IDs, log a warning
+    if (tokenIds.length < count) {
+      console.warn(`Only generated ${tokenIds.length} unique IDs after ${attempts} attempts`);
+    }
+    
     console.log('Generated random token IDs:', tokenIds);
     return tokenIds;
+    
   } catch (error) {
-    console.error('Error generating random token IDs:', error);
-    // Fallback to simple random generation
+    console.error('Unexpected error in getRandomTokenIds:', error);
+    
+    // Fallback to simple random generation with known size
+    console.log('Falling back to default random generation');
     const tokenIds = [];
     const usedIds = new Set();
-    const maxTokenId = 8144; // Known collection size
     
-    while (tokenIds.length < count) {
-      const randomId = Math.floor(Math.random() * maxTokenId) + 1;
-      if (!usedIds.has(randomId)) {
+    for (let i = 0; i < count; i++) {
+      let randomId;
+      let attempts = 0;
+      
+      // Try to find a unique ID, but don't loop forever
+      do {
+        randomId = Math.floor(Math.random() * KNOWN_COLLECTION_SIZE) + 1;
+        attempts++;
+      } while (usedIds.has(randomId) && attempts < MAX_ATTEMPTS);
+      
+      if (attempts < MAX_ATTEMPTS) {
         usedIds.add(randomId);
         tokenIds.push(randomId.toString());
       }

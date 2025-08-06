@@ -6,7 +6,7 @@
 // Database configuration
 const DB_NAME = 'heroZeroDB';
 const DB_VERSION = 1;
-const STORES = {
+export const STORES = {
   NFTS: 'nfts',
   LEADERBOARD: 'leaderboard',
   PAIRS: 'pairs'
@@ -223,8 +223,9 @@ export const storePairs = async (pairs) => {
  * @returns {Promise<Array|null>} An NFT pair or null if none found or all expired
  */
 export const getRandomPair = async (maxAge = 60 * 60 * 1000) => {
+  let db;
   try {
-    const db = await initIndexedDB();
+    db = await initIndexedDB();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([STORES.PAIRS], 'readwrite');
       const store = transaction.objectStore(STORES.PAIRS);
@@ -232,43 +233,101 @@ export const getRandomPair = async (maxAge = 60 * 60 * 1000) => {
       
       // Get all valid pairs
       const validPairs = [];
+      let errorOccurred = false;
       
       request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        
-        if (cursor) {
-          const item = cursor.value;
+        try {
+          const cursor = event.target.result;
           
-          // Check if pair is not expired
-          if (Date.now() - item.cachedAt <= maxAge) {
-            validPairs.push({ id: cursor.key, ...item });
-          }
-          
-          cursor.continue();
-        } else {
-          // No more pairs
-          if (validPairs.length > 0) {
-            // Select a random pair
-            const randomIndex = Math.floor(Math.random() * validPairs.length);
-            const selectedPair = validPairs[randomIndex];
+          if (cursor) {
+            const item = cursor.value;
             
-            // Remove the selected pair from the store
-            store.delete(selectedPair.id);
+            // Check if pair is not expired
+            if (Date.now() - item.cachedAt <= maxAge) {
+              validPairs.push({ id: cursor.key, ...item });
+            }
             
-            resolve(selectedPair.pair);
+            cursor.continue();
           } else {
-            resolve(null);
+            // No more pairs
+            if (validPairs.length > 0) {
+              // Select a random pair
+              const randomIndex = Math.floor(Math.random() * validPairs.length);
+              const selectedPair = validPairs[randomIndex];
+              
+              // Remove the selected pair from the store
+              const deleteRequest = store.delete(selectedPair.id);
+              
+              deleteRequest.onsuccess = () => {
+                resolve(selectedPair.pair);
+              };
+              
+              deleteRequest.onerror = () => {
+                console.error('Error deleting pair from IndexedDB:', deleteRequest.error);
+                resolve(selectedPair.pair); // Still resolve with the pair even if delete fails
+              };
+            } else {
+              resolve(null);
+            }
           }
+        } catch (error) {
+          errorOccurred = true;
+          reject(error);
         }
       };
       
+      request.onerror = () => {
+        errorOccurred = true;
+        console.error('Error opening cursor in IndexedDB:', request.error);
+        reject(request.error);
+      };
+      
+      transaction.oncomplete = () => {
+        if (db) {
+          db.close();
+        }
+      };
+      
+      transaction.onerror = (event) => {
+        errorOccurred = true;
+        console.error('Transaction error in getRandomPair:', event.target.error);
+        reject(event.target.error);
+      };
+    });
+  } catch (error) {
+    console.error('Error in getRandomPair:', error);
+    if (db) {
+      db.close();
+    }
+    return null;
+  }
+};
+
+/**
+ * Clear expired items from all stores
+ * @returns {Promise<void>}
+ */
+/**
+ * Invalidate the leaderboard cache in IndexedDB
+ * @returns {Promise<void>}
+ */
+export const invalidateLeaderboard = async () => {
+  try {
+    const db = await initIndexedDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORES.LEADERBOARD], 'readwrite');
+      const store = transaction.objectStore(STORES.LEADERBOARD);
+      
+      // Delete the current leaderboard entry
+      const request = store.delete('current');
+      
+      request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
       
       transaction.oncomplete = () => db.close();
     });
   } catch (error) {
-    console.error('Error getting random pair from IndexedDB:', error);
-    return null;
+    console.error('Error invalidating leaderboard in IndexedDB:', error);
   }
 };
 

@@ -4,7 +4,7 @@
  * K-factor: 32 (high for faster rating changes)
  */
 
-const INITIAL_ELO = 1500;
+export const INITIAL_ELO = 1500;
 const K_FACTOR = 32;
 
 /**

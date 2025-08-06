@@ -1,28 +1,62 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getLeaderboard } from '../utils/firebaseNFT.js';
+import * as IndexedDB from '../utils/indexedDBCache.js';
 
 const HeroZeroLeaderboard = () => {
   const [leaderboardData, setLeaderboardData] = useState({ topNFTs: [], bottomNFTs: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastRefreshed, setLastRefreshed] = useState(Date.now());
+  const [refreshAvailable, setRefreshAvailable] = useState(false);
+  
+  // Check if refresh is available every minute
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      // If it's been more than 5 minutes since last refresh, show refresh button
+      if (Date.now() - lastRefreshed > 5 * 60 * 1000) {
+        setRefreshAvailable(true);
+      }
+    }, 60 * 1000);
+    
+    return () => clearInterval(refreshInterval);
+  }, [lastRefreshed]);
 
   useEffect(() => {
     fetchLeaderboard();
   }, []);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async (forceRefresh = false) => {
     try {
       setLoading(true);
-      const data = await getLeaderboard(10);
-      setLeaderboardData(data);
       setError(null);
+      
+      // Get leaderboard data with caching
+      const data = await getLeaderboard(10, forceRefresh);
+      
+      // Update state
+      setLeaderboardData(data);
+      setLastRefreshed(Date.now());
+      setRefreshAvailable(false);
     } catch (err) {
       console.error('Error fetching leaderboard:', err);
-      setError('Failed to load leaderboard');
+      
+      // Try to get cached leaderboard data as fallback
+      try {
+        const cachedData = await IndexedDB.getLeaderboard();
+        if (cachedData) {
+          console.log('Using cached leaderboard data');
+          setLeaderboardData(cachedData);
+        } else {
+          setError('Failed to load leaderboard');
+        }
+      } catch (cacheErr) {
+        console.error('Error getting cached leaderboard:', cacheErr);
+        setError('Failed to load leaderboard');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const LeaderboardSection = ({ title, nfts, isTop = true }) => (
     <div className="mb-6">
@@ -129,15 +163,20 @@ const HeroZeroLeaderboard = () => {
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
           Leaderboard
         </h2>
-        <button
-          onClick={fetchLeaderboard}
-          className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-          title="Refresh leaderboard"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
+        <div className="flex items-center">
+          {refreshAvailable && (
+            <span className="text-xs text-blue-500 mr-2">New data available</span>
+          )}
+          <button
+            onClick={() => fetchLeaderboard(true)}
+            className={`p-2 ${refreshAvailable ? 'text-blue-500 hover:text-blue-700' : 'text-gray-500 hover:text-gray-700'} dark:text-gray-400 dark:hover:text-gray-200 transition-colors`}
+            title="Refresh leaderboard"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="max-h-96 overflow-y-auto">

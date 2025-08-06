@@ -4,6 +4,7 @@ import DarkModeToggle from './components/DarkModeToggle.jsx';
 import PreloadManager from './components/PreloadManager.jsx';
 import AuthModal from './components/AuthModal.jsx';
 import UserProfile from './components/UserProfile.jsx';
+import AdminRoute from './components/AdminRoute.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import './App.css';
 
@@ -16,7 +17,8 @@ const HeroOrZero = React.lazy(() => import('./pages/HeroOrZero'));
 function AppContent() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const { currentUser } = useAuth();
+  const { currentUser, isAdminUser } = useAuth();
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
 
   return (
     <div className="bg-white dark:bg-gray-800">
@@ -44,15 +46,17 @@ function AppContent() {
                   {currentUser.displayName ? currentUser.displayName[0].toUpperCase() : currentUser.email[0].toUpperCase()}
                 </div>
               )}
-              <span className="hidden sm:inline">{currentUser.displayName || 'Profile'}</span>
+              <span className="hidden sm:inline">{isAdminUser ? 'Admin' : 'Profile'}</span>
             </button>
           ) : (
-            <button
-              onClick={() => setAuthModalOpen(true)}
-              className="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded-full transition-colors"
-            >
-              Login
-            </button>
+            showAdminLogin && (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded-full transition-colors"
+              >
+                Admin Login
+              </button>
+            )
           )}
           <DarkModeToggle />
         </div>
@@ -70,7 +74,7 @@ function AppContent() {
         </div>
       }>
         <Routes>
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} onMouseEnter={() => setShowAdminLogin(true)} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/hero-or-zero" element={<HeroOrZero />} />
           <Route path="/" element={<Home />} />

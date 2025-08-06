@@ -5,13 +5,19 @@
  * This script updates existing NFT records in Firebase to use the correct contract address
  */
 
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, get, update } from 'firebase/database';
+const { initializeApp } = require('firebase/app');
+const { getDatabase, ref, get, update } = require('firebase/database');
 
-// Firebase configuration - you'll need to update this with your config
+// Firebase configuration from the project
 const firebaseConfig = {
-  // Add your Firebase config here
-  databaseURL: process.env.FIREBASE_DATABASE_URL || "https://your-project-default-rtdb.firebaseio.com/"
+  apiKey: "AIzaSyBnxI6LYG7JnpXGVLnWkUJJRD7Yq6Qbt-o",
+  authDomain: "pv-meme-generator.firebaseapp.com",
+  databaseURL: "https://pv-meme-generator-default-rtdb.firebaseio.com",
+  projectId: "pv-meme-generator",
+  storageBucket: "pv-meme-generator.appspot.com",
+  messagingSenderId: "1015347945358",
+  appId: "1:1015347945358:web:f1c9b69d4eb125d2a0fc0e",
+  measurementId: "G-LMVEHCB9EV"
 };
 
 const INCORRECT_CONTRACT = '0x6dc6001535e15b9def7b0fcf0e7e4b9c0f7c7c7c';
@@ -96,16 +102,14 @@ async function fixContractAddresses() {
 }
 
 // Run the migration
-if (import.meta.url === `file://${process.argv[1]}`) {
-  fixContractAddresses()
-    .then(() => {
-      console.log('Migration finished successfully');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('Migration failed:', error);
-      process.exit(1);
-    });
-}
+fixContractAddresses()
+  .then(() => {
+    console.log('Migration finished successfully');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('Migration failed:', error);
+    process.exit(1);
+  });
 
-export default fixContractAddresses;
+module.exports = fixContractAddresses;

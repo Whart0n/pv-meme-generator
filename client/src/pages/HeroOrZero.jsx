@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import NFTCard from '../components/NFTCard.jsx';
 import HeroZeroLeaderboard from '../components/HeroZeroLeaderboard.jsx';
 import VoteResults from '../components/VoteResults.jsx';
 import AuthModal from '../components/AuthModal.jsx';
+import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { useAuth } from '../contexts/AuthContext';
-import { getRandomNFTPair, recordVote, getUserSessionId, hasUserVotedOnPair } from '../utils/firebaseNFT.js';
+import { getRandomNFTPair, recordVote, getUserSessionId, hasUserVotedOnPair, prefetchNFTPairs } from '../utils/firebaseNFT.js';
+import * as IndexedDB from '../utils/indexedDBCache.js';
 
-const HeroOrZero = () => {
+const HeroOrZeroContent = () => {
   const [nftPair, setNftPair] = useState([null, null]);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
@@ -16,46 +18,97 @@ const HeroOrZero = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const { currentUser } = useAuth();
 
+  // Initialize IndexedDB when component mounts
   useEffect(() => {
-    loadNewPair();
+    // Initialize IndexedDB
+    IndexedDB.initIndexedDB().catch(err => {
+      console.error('Error initializing IndexedDB:', err);
+    });
+    
+    // Clear expired items from IndexedDB periodically
+    const intervalId = setInterval(() => {
+      IndexedDB.clearExpiredItems().catch(err => {
+        console.error('Error clearing expired items:', err);
+      });
+    }, 30 * 60 * 1000); // Every 30 minutes
+    
+    return () => clearInterval(intervalId);
   }, []);
 
-  const loadNewPair = async () => {
+  // Load initial pair
+  useEffect(() => {
+    loadNewPair();
+    
+    // Prefetch additional pairs in the background
+    prefetchNFTPairs(5).catch(err => {
+      console.error('Error prefetching NFT pairs:', err);
+    });
+  }, []);
+
+  const loadNewPair = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
       let attempts = 0;
       let newPair;
+      let lastError;
       
       // Try to find a pair the user hasn't voted on
       do {
-        newPair = await getRandomNFTPair();
+        try {
+          // Use true for prefetch to ensure we always have pairs ready
+          newPair = await getRandomNFTPair(true);
+          
+          // Validate the pair
+          if (!newPair || !Array.isArray(newPair) || newPair.length !== 2 || !newPair[0] || !newPair[1]) {
+            throw new Error('Invalid NFT pair received');
+          }
+          
+          const hasVoted = await hasUserVotedOnPair(
+            newPair[0].tokenId, 
+            newPair[1].tokenId, 
+            userSessionId
+          );
+          
+          if (!hasVoted) break;
+        } catch (err) {
+          console.error('Error in loadNewPair attempt:', err);
+          lastError = err;
+        }
+        
         attempts++;
         
-        // If we've tried 10 times, just use the current pair
-        if (attempts >= 10) break;
-        
-        const hasVoted = await hasUserVotedOnPair(
-          newPair[0].tokenId, 
-          newPair[1].tokenId, 
-          userSessionId
-        );
-        
-        if (!hasVoted) break;
-      } while (attempts < 10);
+        // If we've tried 5 times, show error or use the last pair if we have one
+        if (attempts >= 5) {
+          if (newPair) {
+            console.warn('Using last valid pair after multiple attempts');
+            break;
+          }
+          throw lastError || new Error('Failed to load valid NFT pair after multiple attempts');
+        }
+      } while (true);
       
       setNftPair(newPair);
+      
+      // Prefetch more pairs in the background after loading this one
+      prefetchNFTPairs().catch(err => {
+        console.error('Error prefetching NFT pairs:', err);
+      });
     } catch (err) {
       console.error('Error loading NFT pair:', err);
       setError('Failed to load NFTs. Please try again.');
+      // Set default/empty state to prevent UI from breaking
+      setNftPair([null, null]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [userSessionId]);
 
-  const handleVote = async (winnerTokenId) => {
-    if (voting || !nftPair[0] || !nftPair[1]) return;
+  const handleVote = useCallback(async (winnerTokenId) => {
+    if (voting || !nftPair[0] || !nftPair[1]) {
+      return;
+    }
 
     try {
       setVoting(true);
@@ -64,20 +117,31 @@ const HeroOrZero = () => {
         ? nftPair[1].tokenId 
         : nftPair[0].tokenId;
 
+      // Record vote using batch update
+      // Note: recordVote already invalidates the leaderboard cache internally
       const results = await recordVote(winnerTokenId, loserTokenId, userSessionId);
+      
       setVoteResults(results);
+      
+      // Reset voting state after successful vote
+      setVoting(false);
     } catch (err) {
       console.error('Error recording vote:', err);
       setError('Failed to record vote. Please try again.');
       setVoting(false);
     }
-  };
+  }, [nftPair, voting, userSessionId]);
 
-  const handleNextPair = () => {
+  const handleNextPair = useCallback(() => {
     setVoteResults(null);
     setVoting(false);
     loadNewPair();
-  };
+    
+    // Prefetch more pairs in the background
+    prefetchNFTPairs().catch(err => {
+      console.error('Error prefetching NFT pairs:', err);
+    });
+  }, [loadNewPair]);
 
   if (loading) {
     return (
@@ -157,25 +221,9 @@ const HeroOrZero = () => {
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
             Vote on MetaHero NFTs in head-to-head battles
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-2">
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
             Select your preferred NFT as the <span className="font-semibold text-blue-500">Hero</span> in each battle.
           </p>
-          {!currentUser && (
-            <div className="mt-4">
-              <button 
-                onClick={() => setAuthModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                </svg>
-                Login to track your votes
-              </button>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Login to save your voting history and prevent seeing duplicate NFT pairs
-              </p>
-            </div>
-          )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
@@ -258,12 +306,24 @@ const HeroOrZero = () => {
         <VoteResults
           winner={voteResults.winner}
           loser={voteResults.loser}
-          ratingChanges={voteResults.ratingChanges}
+          ratingChanges={{
+            winnerChange: voteResults.winner.change,
+            loserChange: voteResults.loser.change
+          }}
           onNextPair={handleNextPair}
         />
       )}
+
+      {/* Auth Modal */}
+      {authModalOpen && <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />}
     </div>
   );
 };
+
+const HeroOrZero = () => (
+  <ErrorBoundary>
+    <HeroOrZeroContent />
+  </ErrorBoundary>
+);
 
 export default HeroOrZero;
