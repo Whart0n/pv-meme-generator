@@ -2,33 +2,25 @@ import React from 'react';
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-900 text-white py-6">
-      <div className="container mx-auto px-4 text-center">
-        <p className="text-lg mb-4">Your Tips Help Support This Site!</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
-          <div className="bg-gray-800 p-3 rounded">
-            <p className="font-mono text-sm break-all">SOL: 6qQ8B9... (truncated for display)</p>
-          </div>
-          <div className="bg-gray-800 p-3 rounded">
-            <p className="font-mono text-sm break-all">ETH: 0x1234... (truncated for display)</p>
-          </div>
-          <div className="bg-gray-800 p-3 rounded">
-            <p className="font-mono text-sm break-all">BTC: bc1q... (truncated for display)</p>
-          </div>
-        </div>
-        <div className="pt-4 border-t border-gray-700">
-          <a 
-            href="https://x.com/yourhandle" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-md transition-colors"
-          >
-            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-            </svg>
-            Follow me on X
-          </a>
-        </div>
+    <footer className="mt-12 py-6 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 text-center text-gray-700 dark:text-gray-300 text-sm">
+      <div className="mb-2 font-semibold text-base text-gray-800 dark:text-gray-100">Your Tips Help Support This Site!</div>
+      <div className="flex flex-col items-center gap-1 mb-2">
+        <span><span className="font-bold">SOL:</span> E7AUwAjXoacTSrqKMg5Ycnwhn6boMbc8tpEhbrKUviAw</span>
+        <span><span className="font-bold">ETH:</span> 0xd919d5304BE87E3159f6b1Cbd5516822F407B6eC</span>
+        <span><span className="font-bold">BTC:</span> bc1qs8nrgl4h3u0gje0acaufpufmumvxql7cvgfhej</span>
+      </div>
+      <div className="flex justify-center items-center gap-2 mt-2">
+        <a 
+          href="https://x.com/ruffriderx" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1227" className="w-5 h-5" fill="currentColor">
+            <path d="M1199.6 0 741 555.7 1199.6 1227H872.9L563.4 792.8 214.2 1227H0l485.8-594.7L43.6 0h337.7l261.2 366.2L985.8 0h213.8ZM917.7 1106.6h109.6L293.4 120.4h-114L917.7 1106.6Z"></path>
+          </svg>
+          <span>Follow me on X</span>
+        </a>
       </div>
     </footer>
   );
