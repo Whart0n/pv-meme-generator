@@ -49,7 +49,11 @@ export const fetchNFTMetadata = async (tokenId) => {
     console.log('Trying v2 API:', v2Url);
     
     const response = await openSeaV2Api.get(v2Url, {
-      validateStatus: (status) => status < 500 // Don't throw for 4xx errors
+      validateStatus: (status) => status < 500, // Don't throw for 4xx errors
+      params: {
+        // Request only essential fields to reduce bandwidth
+        include: 'name,image_url,traits'
+      }
     });
 
     if (response.status === 200 && response.data && response.data.nft) {
@@ -87,14 +91,6 @@ export const fetchNFTMetadata = async (tokenId) => {
       image: nft.image_url || nft.image_preview_url || nft.image_thumbnail_url,
       traits: nft.traits || [],
       opensea_url: nft.permalink || `https://opensea.io/collection/${OPENSEA_COLLECTION_SLUG}/${tokenId}?ref=${REFERRAL_ADDRESS}`,
-      description: nft.description || ''
-    };
-    return {
-      tokenId: tokenId,
-      name: nft.name || `MetaHero #${tokenId}`,
-      image: nft.image_url || nft.display_image_url,
-      traits: nft.traits || [],
-      opensea_url: `https://opensea.io/collection/${OPENSEA_COLLECTION_SLUG}/${tokenId}?ref=${REFERRAL_ADDRESS}`,
       description: nft.description || ''
     };
   } catch (error) {

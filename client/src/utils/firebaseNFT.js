@@ -16,6 +16,7 @@ import {
 import { fetchNFTMetadata, getRandomTokenIds } from './openSeaApi.js';
 import { createInitialNFTData, updateNFTAfterVote, calculateNewRatings, INITIAL_ELO } from './eloRating.js';
 import * as IndexedDB from './indexedDBCache.js';
+import { firebaseUsageMonitor } from './firebaseUsageMonitor.js';
 
 // Database paths
 const NFTS_PATH = 'metahero-nfts';
@@ -54,7 +55,10 @@ export const getOrCreateNFT = async (tokenId) => {
     }
     
     // If not in cache, fetch from Firebase
+    // Only fetch essential fields for voting to reduce bandwidth
     const nftRef = ref(database, `${NFTS_PATH}/${tokenId}`);
+    console.log('Recording Firebase read operation for NFT:', tokenId);
+    firebaseUsageMonitor.recordRead();
     const snapshot = await get(nftRef);
     
     if (snapshot.exists()) {
@@ -78,6 +82,8 @@ export const getOrCreateNFT = async (tokenId) => {
       // Add random_index for efficient querying
       initialData.random_index = Math.random();
       
+      console.log('Recording Firebase write operation for NFT:', tokenId);
+      firebaseUsageMonitor.recordWrite(initialData);
       await set(nftRef, initialData);
       
       // Update caches
@@ -118,22 +124,28 @@ export const getRandomNFTPair = async (prefetch = true) => {
     // Generate a random value between 0 and 1
     const randomValue = Math.random();
     
-    // Query for NFTs with random_index >= randomValue, limited to 10
+    // Query for NFTs with random_index >= randomValue, limited to 20
+    // Only fetch essential fields for voting to reduce bandwidth
+    // Increased limit to reduce query frequency
     const greaterQuery = query(
       nftsRef,
       orderByChild('random_index'),
       startAt(randomValue),
-      limitToFirst(10)
+      limitToFirst(20)
     );
+    firebaseUsageMonitor.recordQuery();
     
-    // Query for NFTs with random_index < randomValue, limited to 10
+    // Query for NFTs with random_index < randomValue, limited to 20
     // This ensures we get results even if randomValue is very high
+    // Only fetch essential fields for voting to reduce bandwidth
+    // Increased limit to reduce query frequency
     const lesserQuery = query(
       nftsRef,
       orderByChild('random_index'),
       endAt(randomValue),
-      limitToLast(10)
+      limitToLast(20)
     );
+    firebaseUsageMonitor.recordQuery();
     
     // Execute both queries
     const [greaterSnapshot, lesserSnapshot] = await Promise.all([
@@ -383,12 +395,13 @@ export const recordVote = async (winnerTokenId, loserTokenId, userSessionId) => 
         loser = { ...loser, ...indexedDBLoser };
         // Update memory cache
         nftCache.set(loserTokenId, { data: { ...loser }, cachedAt: Date.now() });
-        needLoserFetch = false;
       }
     }
-
+    
     // If still missing, fetch from Firebase
     if (needWinnerFetch || needLoserFetch) {
+      firebaseUsageMonitor.recordRead();
+      firebaseUsageMonitor.recordRead();
       const [winnerSnapshot, loserSnapshot] = await Promise.all([
         needWinnerFetch ? get(ref(database, `${NFTS_PATH}/${winnerTokenId}`)) : Promise.resolve(null),
         needLoserFetch ? get(ref(database, `${NFTS_PATH}/${loserTokenId}`)) : Promise.resolve(null)
@@ -513,7 +526,6 @@ export const recordVote = async (winnerTokenId, loserTokenId, userSessionId) => 
     const isAdminUser = currentUser && await isAdmin(currentUser);
     
     if (isAdminUser) {
-      // Record the voting session for admin only
       const sessionRef = ref(database, VOTING_SESSIONS_PATH);
       const newSessionKey = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       
@@ -534,6 +546,7 @@ export const recordVote = async (winnerTokenId, loserTokenId, userSessionId) => 
     }
     
     // Perform the batch update
+    firebaseUsageMonitor.recordWrite(updates);
     await update(ref(database), updates);
     
     // Update memory cache with new data
@@ -597,17 +610,22 @@ export const getLeaderboard = async (limit = 10, forceRefresh = false) => {
     
     // If not in cache or forcing refresh, fetch from Firebase
     // Use separate queries for top and bottom NFTs to minimize data transfer
+    // Only fetch essential fields for leaderboard display
     const topQuery = query(
       ref(database, NFTS_PATH),
       orderByChild('elo_score'),
       limitToLast(limit)
     );
+    firebaseUsageMonitor.recordQuery();
     
+    // Query for bottom NFTs
+    // Only fetch essential fields for leaderboard display
     const bottomQuery = query(
       ref(database, NFTS_PATH),
       orderByChild('elo_score'),
       limitToFirst(limit)
     );
+    firebaseUsageMonitor.recordQuery();
     
     // Execute both queries in parallel
     const [topSnapshot, bottomSnapshot] = await Promise.all([
@@ -626,6 +644,7 @@ export const getLeaderboard = async (limit = 10, forceRefresh = false) => {
         const correctOpenseaUrl = `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${tokenId}`;
         
         // Only include essential fields to minimize data transfer
+        // Exclude traits and other non-essential metadata
         topNFTs.push({
           tokenId,
           name: data.name,
@@ -655,6 +674,7 @@ export const getLeaderboard = async (limit = 10, forceRefresh = false) => {
         const correctOpenseaUrl = `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${tokenId}`;
         
         // Only include essential fields to minimize data transfer
+        // Exclude traits and other non-essential metadata
         bottomNFTs.push({
           tokenId,
           name: data.name,

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { database, auth } from '../firebase';
 import { ref, push, onValue, remove } from 'firebase/database';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { firebaseUsageMonitor } from '../utils/firebaseUsageMonitor.js';
 
 const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -12,6 +13,129 @@ const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [usageData, setUsageData] = useState(firebaseUsageMonitor.getFormattedUsage());
+  const [usageExpanded, setUsageExpanded] = useState(false);
+
+  // Update usage data periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setUsageData(firebaseUsageMonitor.getFormattedUsage());
+    }, 5000); // Update every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleResetUsage = () => {
+    if (window.confirm('Are you sure you want to reset all usage data?')) {
+      firebaseUsageMonitor.resetUsage();
+      setUsageData(firebaseUsageMonitor.getFormattedUsage());
+    }
+  };
+
+  // Firebase Usage Monitor Component
+  const FirebaseUsageMonitor = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Firebase Usage Monitor</h2>
+        <button 
+          onClick={() => setUsageExpanded(!usageExpanded)}
+          className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+        >
+          {usageExpanded ? 'Collapse' : 'Expand'}
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+          <div className="text-sm text-blue-800 dark:text-blue-200">Reads</div>
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-300">{usageData.reads.toLocaleString()}</div>
+          <div className="text-xs text-blue-600 dark:text-blue-400">Daily avg: {usageData.dailyAverages.reads.toLocaleString()}</div>
+        </div>
+        
+        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+          <div className="text-sm text-green-800 dark:text-green-200">Writes</div>
+          <div className="text-2xl font-bold text-green-600 dark:text-green-300">{usageData.writes.toLocaleString()}</div>
+          <div className="text-xs text-green-600 dark:text-green-400">Daily avg: {usageData.dailyAverages.writes.toLocaleString()}</div>
+        </div>
+        
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+          <div className="text-sm text-purple-800 dark:text-purple-200">Bandwidth</div>
+          <div className="text-2xl font-bold text-purple-600 dark:text-purple-300">{usageData.totalBandwidthFormatted}</div>
+          <div className="text-xs text-purple-600 dark:text-purple-400">Daily avg: {usageData.dailyAveragesFormatted.bandwidth}</div>
+        </div>
+      </div>
+      
+      {/* Projection Display */}
+      {usageData.projection && usageData.projection.daysUntilLimit !== null && (
+        <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+          <div className="text-sm text-yellow-800 dark:text-yellow-200">Projection</div>
+          <div className="text-lg font-bold text-yellow-600 dark:text-yellow-300">
+            {usageData.projection.daysUntilLimit > 0 
+              ? `${usageData.projection.daysUntilLimit} days until ${usageData.projection.limitInGB}GB limit reached` 
+              : 'Bandwidth limit reached or exceeded!'}
+          </div>
+          <div className="text-xs text-yellow-600 dark:text-yellow-400">
+            Based on current daily average usage
+          </div>
+        </div>
+      )}
+      
+      {usageExpanded && (
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-medium">Daily Usage History (Last 30 Days)</h3>
+            <button 
+              onClick={handleResetUsage}
+              className="text-sm px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+            >
+              Reset Data
+            </button>
+          </div>
+          
+          <div className="max-h-60 overflow-y-auto">
+            {usageData.dailyUsage.length > 0 ? (
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-2 px-2">Date</th>
+                    <th className="text-right py-2 px-2">Reads</th>
+                    <th className="text-right py-2 px-2">Writes</th>
+                    <th className="text-right py-2 px-2">Bandwidth</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...usageData.dailyUsage].reverse().map((day, index) => (
+                    <tr key={index} className="border-b border-gray-100 dark:border-gray-800">
+                      <td className="py-2 px-2">{day.date}</td>
+                      <td className="text-right py-2 px-2">{day.reads.toLocaleString()}</td>
+                      <td className="text-right py-2 px-2">{day.writes.toLocaleString()}</td>
+                      <td className="text-right py-2 px-2">
+                        {(() => {
+                          const bytes = day.bandwidth;
+                          if (bytes === 0) return '0 Bytes';
+                          const k = 1024;
+                          const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                          const i = Math.floor(Math.log(bytes) / Math.log(k));
+                          return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                        })()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400 text-center py-4">No usage data available</p>
+            )}
+          </div>
+        </div>
+      )}
+      
+      <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+        <p>Budget: $25/month (~35GB). Current usage: {usageData.totalBandwidthFormatted}.</p>
+        <p className="mt-1">Monitor this panel to ensure you stay within your Firebase plan limits.</p>
+      </div>
+    </div>
+  );
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -148,6 +272,9 @@ const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
           </button>
         </div>
       </div>
+      
+      {/* Firebase Usage Monitor */}
+      <FirebaseUsageMonitor />
       
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">Manage Templates</h2>
