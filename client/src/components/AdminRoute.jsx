@@ -13,11 +13,12 @@ const AdminRoute = ({ children }) => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
 
+  // Only check admin status if user is logged in
   useEffect(() => {
     const checkAdmin = async () => {
       if (!currentUser) {
-        setIsAdminUser(false);
         setLoading(false);
         return;
       }
@@ -26,7 +27,7 @@ const AdminRoute = ({ children }) => {
         const adminStatus = await isAdmin(currentUser);
         setIsAdminUser(adminStatus);
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        console.error('AdminRoute: Error checking admin status:', error);
         setIsAdminUser(false);
       } finally {
         setLoading(false);
@@ -36,7 +37,8 @@ const AdminRoute = ({ children }) => {
     checkAdmin();
   }, [currentUser]);
 
-  if (loading) {
+  // If we're still loading and there's a current user, show loading state
+  if (loading && currentUser) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
         <div className="text-center">
@@ -47,10 +49,24 @@ const AdminRoute = ({ children }) => {
     );
   }
 
+  // If not logged in or not an admin, show the login form
   if (!currentUser || !isAdminUser) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md w-full max-w-md">
+          <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">Admin Login</h2>
+          {React.Children.map(children, child => 
+            React.cloneElement(child, { 
+              onLoginSuccess: () => window.location.reload(),
+              showOnlyLogin: true 
+            })
+          )}
+        </div>
+      </div>
+    );
   }
 
+  // If logged in and is admin, show the admin panel
   return children;
 };
 

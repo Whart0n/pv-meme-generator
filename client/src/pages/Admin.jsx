@@ -4,7 +4,7 @@ import { database, auth } from '../firebase';
 import { ref, push, onValue, remove } from 'firebase/database';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 
-const Admin = () => {
+const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [user, setUser] = useState(null);
@@ -61,10 +61,14 @@ const Admin = () => {
     setError("");
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
     } catch (err) {
       setError("Login failed: " + (err.message || err.code));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleLogout = async () => {
@@ -73,82 +77,116 @@ const Admin = () => {
 
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-        <form onSubmit={handleLogin} className="bg-white dark:bg-gray-800 p-8 rounded shadow-md w-80">
-          <h2 className="text-xl font-bold mb-4 text-center text-gray-900 dark:text-white">Admin Login</h2>
-          {error && <div className="text-red-500 dark:text-red-400 mb-2">{error}</div>}
+      <form onSubmit={handleLogin} className="w-full">
+        {error && <div className="text-red-500 dark:text-red-400 mb-4 text-center">{error}</div>}
+        <div className="mb-4">
           <input
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder="Email"
-            className="w-full mb-2 p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
+            className="w-full p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
             required
           />
+        </div>
+        <div className="mb-6">
           <input
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="Password"
-            className="w-full mb-4 p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
+            className="w-full p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
             required
           />
-          <button
-            type="submit"
-            className="w-full bg-blue-500 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            disabled={loading}
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-      </div>
+        </div>
+        <button
+          type="submit"
+          className="w-full bg-blue-500 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors"
+          disabled={loading}
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
+      </form>
     );
   }
 
+  if (showOnlyLogin) {
+    return null; // The login form is already rendered by AdminRoute
+  }
+
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-gray-700 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded"
+    <div className="container mx-auto p-4 max-w-6xl">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Admin Panel</h1>
+        <button 
+          onClick={handleLogout} 
+          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors"
         >
           Logout
         </button>
       </div>
       
-      {/* Admin tools section removed as migration is no longer needed */}
-      
-      <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Upload New Meme Template</h2>
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-        <input type="file" onChange={handleFileChange} className="mb-4 text-gray-900 dark:text-gray-300" />
-        <button
-          onClick={handleUpload}
-          disabled={!selectedFile}
-          className="bg-blue-500 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-400"
-        >
-          Upload Template
-        </button>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-4">Upload New Template</h2>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <input 
+            type="file" 
+            onChange={handleFileChange} 
+            className="flex-grow p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600"
+            accept="image/*"
+          />
+          <button 
+            onClick={handleUpload} 
+            disabled={!selectedFile || loading}
+            className={`px-4 py-2 rounded font-medium transition-colors ${
+              selectedFile 
+                ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {loading ? 'Uploading...' : 'Upload Template'}
+          </button>
+        </div>
       </div>
-
-      <div className="mt-8">
-        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Manage Templates</h2>
-        {templates.length > 0 ? (
-          <ul className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-            {templates.map((template) => (
-              <li key={template.id} className="flex justify-between items-center py-2 border-b dark:border-gray-700">
-                <span className="text-gray-900 dark:text-gray-200">{template.name}</span>
-                <button
-                  onClick={() => handleDelete(template.id)}
-                  className="bg-red-500 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
-                >
-                  Delete
-                </button>
-              </li>
-            ))}
-          </ul>
+      
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-semibold mb-4">Manage Templates</h2>
+        {templates.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400 text-center py-8">No templates found</p>
         ) : (
-          <p className="text-gray-500 dark:text-gray-400">No templates found.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {templates.map(template => (
+              <div key={template.id} className="border dark:border-gray-700 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                <div className="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2">
+                  <img 
+                    src={template.url} 
+                    alt={template.name} 
+                    className="max-h-48 max-w-full object-contain" 
+                  />
+                </div>
+                <div className="p-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {template.name}
+                    </span>
+                    <button 
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this template?')) {
+                          handleDelete(template.id);
+                        }
+                      }}
+                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                      title="Delete template"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

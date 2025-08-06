@@ -14,20 +14,31 @@ const ADMIN_UIDS = [
  * @returns {Promise<boolean>} Whether the user is an admin
  */
 export const isAdmin = async (user) => {
-  if (!user) return false;
+  console.log('isAdmin: Checking if user is admin, UID:', user?.uid);
+  if (!user) {
+    console.log('isAdmin: No user provided');
+    return false;
+  }
   
   // First check the hardcoded list
   if (ADMIN_UIDS.includes(user.uid)) {
+    console.log('isAdmin: User is in hardcoded admin list');
     return true;
+  } else {
+    console.log('isAdmin: User not in hardcoded admin list, checking database...');
   }
   
   // Fallback to database check (useful for adding admins without redeploying)
   try {
-    const adminRef = ref(database, `admins/${user.uid}`);
+    const adminPath = `admins/${user.uid}`;
+    console.log('isAdmin: Checking database path:', adminPath);
+    const adminRef = ref(database, adminPath);
     const snapshot = await get(adminRef);
-    return snapshot.exists() && snapshot.val() === true;
+    const isAdmin = snapshot.exists() && snapshot.val() === true;
+    console.log('isAdmin: Database check result:', { exists: snapshot.exists(), value: snapshot.val(), isAdmin });
+    return isAdmin;
   } catch (error) {
-    console.error('Error checking admin status:', error);
+    console.error('isAdmin: Error checking admin status in database:', error);
     return false;
   }
 };
