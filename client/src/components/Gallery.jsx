@@ -2,54 +2,69 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { database } from '../firebase';
 import { ref, get } from 'firebase/database';
 
-// Static list of meme files with their filenames for the public folder
-const memeTemplates = [
-  { id: 'template-0', name: 'Beanzie this is fine', filename: 'beanzie_this_is_fine.webp' },
-  { id: 'template-1', name: 'Bring it marvin', filename: 'bring_it_marvin.webp' },
-  { id: 'template-2', name: 'Cheetah button', filename: 'CHEETAH_BUTTON-2.webp' },
-  { id: 'template-3', name: 'Drake wiggles', filename: 'drake_wiggles.webp' },
-  { id: 'template-4', name: 'Frank waiting', filename: 'Frank_Waiting-2.webp' },
-  { id: 'template-5', name: 'Gfunk courtney', filename: 'GFUNK__COURTNEY.webp' },
-  { id: 'template-6', name: 'Gfunk bustdown', filename: 'gfunkbustdown.webp' },
-  { id: 'template-7', name: 'Gfunk buttons', filename: 'gfunkbuttons.webp' },
-  { id: 'template-8', name: 'Gfunk projects', filename: 'gfunkprojects.webp' },
-  { id: 'template-9', name: 'Gfunk stick', filename: 'gfunkstick.webp' },
-  { id: 'template-10', name: 'Harold gfunk', filename: 'haroldgfunk.webp' },
-  { id: 'template-11', name: 'Hilary smoking', filename: 'Hilary_Smoking.webp' },
-  { id: 'template-12', name: 'Ivanova squint template', filename: 'ivanova_squint_template.webp' },
-  { id: 'template-13', name: 'Other women', filename: 'other_women.webp' },
-  { id: 'template-14', name: 'Skull distracted', filename: 'Skull_distracted.webp' },
-  { id: 'template-15', name: 'What if I told you', filename: 'WHAT_IF_I_TOLD_YOU.webp' }
-];
-
-// Add src property to all templates with absolute paths
-const templatesWithSrc = memeTemplates.map(template => ({
-  ...template,
-  src: `/memes/${template.filename}` // Use public folder path
-}));
+// Templates are now loaded exclusively from Firebase database
+// Static templates have been moved to Firebase for centralized management
 
 export async function getTemplates() {
-  const templatesRef = ref(database, 'templates');
-  const snapshot = await get(templatesRef);
-  const remoteTemplates = [];
+  console.log('Loading templates...');
   
-  if (snapshot.exists()) {
-    const data = snapshot.val();
-    for (const key in data) {
-      remoteTemplates.push({ 
-        id: key, 
-        ...data[key], 
-        src: data[key].url,
-        order: data[key].order || 9999 // Default to high number for templates without order
-      });
+  try {
+    console.log('Firebase database object:', database);
+    const templatesRef = ref(database, 'templates');
+    console.log('Templates reference created:', templatesRef);
+    
+    console.log('Attempting to fetch from Firebase...');
+    const snapshot = await get(templatesRef);
+    console.log('Firebase snapshot received:', snapshot);
+    console.log('Firebase snapshot exists:', snapshot.exists());
+    
+    const remoteTemplates = [];
+    
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      console.log('Firebase templates data keys:', Object.keys(data));
+      console.log('Total Firebase templates found:', Object.keys(data).length);
+      
+      let validTemplates = 0;
+      let invalidTemplates = 0;
+      
+      for (const key in data) {
+        const templateData = data[key];
+        console.log(`Processing template ${key}:`, templateData);
+        
+        // Check if template has required fields
+        if (templateData && templateData.url) {
+          remoteTemplates.push({ 
+            id: key, 
+            ...templateData, 
+            src: templateData.url,
+            order: templateData.order || 9999 // Default to high number for templates without order
+          });
+          validTemplates++;
+        } else {
+          console.warn(`Skipping template ${key} - missing required fields:`, {
+            hasUrl: !!templateData?.url,
+            data: templateData
+          });
+          invalidTemplates++;
+        }
+      }
+      
+      // Sort templates by their order property (ascending)
+      remoteTemplates.sort((a, b) => (a.order || 9999) - (b.order || 9999));
+      console.log(`Remote templates processed: ${validTemplates} valid, ${invalidTemplates} invalid`);
+      console.log('Final remote templates:', remoteTemplates);
+    } else {
+      console.log('No Firebase templates found, using static templates only');
     }
     
-    // Sort templates by their order property (ascending)
-    remoteTemplates.sort((a, b) => (a.order || 9999) - (b.order || 9999));
+    console.log('Firebase templates loaded:', remoteTemplates.length);
+    return remoteTemplates;
+  } catch (error) {
+    console.error('Error loading templates from Firebase:', error);
+    console.log('No templates available - Firebase connection failed');
+    return [];
   }
-  
-  // Merge with static templates (which will appear after remote templates)
-  return [...remoteTemplates, ...templatesWithSrc];
 }
 
 const Gallery = ({ onSelect, selectedTemplate, onTemplatesLoaded }) => {
@@ -63,15 +78,21 @@ const Gallery = ({ onSelect, selectedTemplate, onTemplatesLoaded }) => {
 
   useEffect(() => {
     const loadTemplates = async () => {
+      console.log('Gallery: Starting template loading...');
       setLoading(true);
       try {
         const allTemplates = await getTemplates();
+        console.log('Gallery: Templates received:', allTemplates.length, allTemplates);
         setDisplayedTemplates(allTemplates);
+        console.log('Gallery: displayedTemplates state updated');
         if (onTemplatesLoaded) {
           onTemplatesLoaded(allTemplates);
         }
       } catch (error) {
-        console.error("Failed to load templates:", error);
+        console.error("Gallery: Failed to load templates:", error);
+        // Fallback to static templates if there's an error
+        console.log('Gallery: Using static templates as fallback');
+        setDisplayedTemplates(templatesWithSrc);
       }
       setLoading(false);
     };
@@ -97,7 +118,7 @@ const Gallery = ({ onSelect, selectedTemplate, onTemplatesLoaded }) => {
           </div>
         ) : displayedTemplates.length > 0 ? (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-            {displayedTemplates.map((template) => (
+            {console.log('Gallery: Rendering templates:', displayedTemplates.length) || displayedTemplates.map((template) => (
             <div
               key={template.id}
               className={`cursor-pointer border-4 ${selectedTemplate?.id === template.id ? 'border-blue-500 dark:border-blue-400' : 'border-transparent'} rounded-lg overflow-hidden aspect-square flex items-center justify-center bg-gray-200 dark:bg-gray-600 relative`}
