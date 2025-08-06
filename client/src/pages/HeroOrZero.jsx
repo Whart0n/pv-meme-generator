@@ -4,6 +4,7 @@ import HeroZeroLeaderboard from '../components/HeroZeroLeaderboard.jsx';
 import VoteResults from '../components/VoteResults.jsx';
 import AuthModal from '../components/AuthModal.jsx';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
+import Footer from '../components/Footer.jsx';
 import { useAuth } from '../contexts/AuthContext';
 import { getRandomNFTPair, recordVote, getUserSessionId, hasUserVotedOnPair, prefetchNFTPairs } from '../utils/firebaseNFT.js';
 import * as IndexedDB from '../utils/indexedDBCache.js';
@@ -321,9 +322,14 @@ const HeroOrZeroContent = () => {
 };
 
 const HeroOrZero = () => (
-  <ErrorBoundary>
-    <HeroOrZeroContent />
-  </ErrorBoundary>
+  <div className="flex flex-col min-h-screen">
+    <div className="flex-grow">
+      <ErrorBoundary>
+        <HeroOrZeroContent />
+      </ErrorBoundary>
+    </div>
+    <Footer />
+  </div>
 );
 
 export default HeroOrZero;
