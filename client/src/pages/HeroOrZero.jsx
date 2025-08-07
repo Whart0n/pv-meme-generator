@@ -119,6 +119,11 @@ const HeroOrZeroContent = () => {
         : nftPair[0].tokenId;
 
       // Record vote using batch update
+
+      // Prefetch more pairs right after voting for next rounds
+      prefetchNFTPairs().catch(err => {
+        console.error('Error prefetching NFT pairs after vote:', err);
+      });
       // Note: recordVote already invalidates the leaderboard cache internally
       const results = await recordVote(winnerTokenId, loserTokenId, userSessionId);
       

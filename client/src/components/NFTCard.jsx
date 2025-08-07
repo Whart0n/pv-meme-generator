@@ -139,4 +139,14 @@ const NFTCard = ({ nft, onVote, isVoting, showStats = false }) => {
   );
 };
 
-export default NFTCard;
+function areEqual(prevProps, nextProps) {
+  // Shallow compare NFT object and voting state
+  return (
+    prevProps.nft === nextProps.nft &&
+    prevProps.isVoting === nextProps.isVoting &&
+    prevProps.showStats === nextProps.showStats &&
+    prevProps.onVote === nextProps.onVote
+  );
+}
+
+export default React.memo(NFTCard, areEqual);

@@ -3,6 +3,7 @@ import { getLeaderboard } from '../utils/firebaseNFT.js';
 import * as IndexedDB from '../utils/indexedDBCache.js';
 import { fixImageUrl } from '../utils/contractUtils.js';
 import NFTSearchModal from './NFTSearchModal';
+import VirtualizedList from './VirtualizedList.jsx';
 
 const HeroZeroLeaderboard = () => {
   const [leaderboardData, setLeaderboardData] = useState({ topNFTs: [], bottomNFTs: [] });
@@ -65,57 +66,63 @@ const HeroZeroLeaderboard = () => {
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
         {isTop ? '🏆' : '💀'} {title}
       </h3>
-      <div className="space-y-2">
-        {nfts.map((nft, index) => (
-          <div
-            key={nft.tokenId}
-            className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-          >
-            {/* Rank */}
-            <div className="flex-shrink-0 w-8 text-center">
-              <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                {isTop ? index + 1 : (nft.actualRank || `${nfts.length - index}`)}
-              </span>
-            </div>
+      <div style={{ height: Math.min(nfts.length * 56, 560), maxHeight: 560 }}>
+        <VirtualizedList
+          items={nfts}
+          itemHeight={56} // px, matches row height
+          overscan={4}
+          renderItem={(nft, index) => (
+            <div
+              key={nft.tokenId}
+              className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              style={{ height: '56px' }}
+            >
+              {/* Rank */}
+              <div className="flex-shrink-0 w-8 text-center">
+                <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                  {isTop ? index + 1 : (nft.actualRank || `${nfts.length - index}`)}
+                </span>
+              </div>
 
-            {/* NFT Image */}
-            <div className="flex-shrink-0">
-              <img
-                src={nft.image}
-                alt={nft.name}
-                className="w-12 h-12 object-cover rounded-lg"
-                loading="lazy"
-              />
-            </div>
+              {/* NFT Image */}
+              <div className="flex-shrink-0">
+                <img
+                  src={nft.image}
+                  alt={nft.name}
+                  className="w-12 h-12 object-cover rounded-lg"
+                  loading="lazy"
+                />
+              </div>
 
-            {/* NFT Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                {nft.name}
-              </p>
-              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                <span className="font-semibold">Elo: {nft.elo_score}</span>
-                <span>•</span>
-                <span>{nft.wins}W-{nft.losses}L</span>
+              {/* NFT Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {nft.name}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                  <span className="font-semibold">Elo: {nft.elo_score}</span>
+                  <span>•</span>
+                  <span>{nft.wins}W-{nft.losses}L</span>
+                </div>
+              </div>
+
+              {/* OpenSea Link */}
+              <div className="flex-shrink-0">
+                <a
+                  href={nft.opensea_url || `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${nft.tokenId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 text-gray-400 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+                  aria-label="View on OpenSea"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
               </div>
             </div>
-
-            {/* OpenSea Link */}
-            <div className="flex-shrink-0">
-              <a
-                href={nft.opensea_url || `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${nft.tokenId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 text-gray-400 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
-                aria-label="View on OpenSea"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        ))}
+          )}
+        />
       </div>
     </div>
   );

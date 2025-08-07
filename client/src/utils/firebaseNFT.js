@@ -48,8 +48,14 @@ export const getOrCreateNFT = async (tokenId) => {
     }
     
     // Check IndexedDB cache next (offline support)
-    const indexedDBNFT = await IndexedDB.getNFT(tokenId);
+    let indexedDBNFT = await IndexedDB.getNFT(tokenId);
     if (indexedDBNFT) {
+      // Always ensure the image URL is normalized in cache
+      const fixedImage = fixImageUrl(indexedDBNFT.image);
+      if (fixedImage !== indexedDBNFT.image) {
+        indexedDBNFT.image = fixedImage;
+        await IndexedDB.storeNFT({ ...indexedDBNFT, tokenId });
+      }
       // Update memory cache
       nftCache.set(tokenId, { data: indexedDBNFT, cachedAt: Date.now() });
       return indexedDBNFT;
@@ -78,7 +84,12 @@ export const getOrCreateNFT = async (tokenId) => {
       // Remove traits to reduce data size
       const { traits, ...metadataWithoutTraits } = metadata;
       
-      const initialData = createInitialNFTData(metadataWithoutTraits);
+      // Always fix the image URL before storing
+      const normalizedMetadata = {
+        ...metadataWithoutTraits,
+        image: fixImageUrl(metadataWithoutTraits.image)
+      };
+      const initialData = createInitialNFTData(normalizedMetadata);
       
       // Add random_index for efficient querying
       initialData.random_index = Math.random();
@@ -640,23 +651,16 @@ export const getLeaderboard = async (limit = 10, forceRefresh = false) => {
       topSnapshot.forEach((childSnapshot) => {
         const tokenId = childSnapshot.key;
         const data = childSnapshot.val();
-        
-        // Ensure we have the correct OpenSea URL with the right contract address
-        const correctOpenseaUrl = `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${tokenId}`;
-        
-        // Only include essential fields to minimize data transfer
-        // Exclude traits and other non-essential metadata
+        // Only use essential fields for leaderboard
         topNFTs.push({
           tokenId,
           name: data.name,
-          image: data.image && data.image.includes('0x6dc6001535e15b9def7b0fcf0e7e4b9c0f7c7c7c') 
-            ? data.image.replace('0x6dc6001535e15b9def7b0fcf0e7e4b9c0f7c7c7c', '0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2')
-            : data.image,
+          image: fixImageUrl(data.image),
           elo_score: data.elo_score,
           wins: data.wins,
           losses: data.losses,
           total_votes: data.total_votes,
-          opensea_url: correctOpenseaUrl
+          opensea_url: getCorrectOpenSeaUrl(tokenId)
         });
       });
     }
@@ -670,23 +674,16 @@ export const getLeaderboard = async (limit = 10, forceRefresh = false) => {
       bottomSnapshot.forEach((childSnapshot) => {
         const tokenId = childSnapshot.key;
         const data = childSnapshot.val();
-        
-        // Ensure we have the correct OpenSea URL with the right contract address
-        const correctOpenseaUrl = `https://opensea.io/assets/ethereum/0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2/${tokenId}`;
-        
-        // Only include essential fields to minimize data transfer
-        // Exclude traits and other non-essential metadata
+        // Only use essential fields for leaderboard
         bottomNFTs.push({
           tokenId,
           name: data.name,
-          image: data.image && data.image.includes('0x6dc6001535e15b9def7b0fcf0e7e4b9c0f7c7c7c') 
-            ? data.image.replace('0x6dc6001535e15b9def7b0fcf0e7e4b9c0f7c7c7c', '0x6dc6001535e15b9def7b0f6a20a2111dfa9454e2')
-            : data.image,
+          image: fixImageUrl(data.image),
           elo_score: data.elo_score,
           wins: data.wins,
           losses: data.losses,
           total_votes: data.total_votes,
-          opensea_url: correctOpenseaUrl
+          opensea_url: getCorrectOpenSeaUrl(tokenId)
         });
       });
     }
