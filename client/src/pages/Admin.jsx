@@ -4,7 +4,6 @@ import { database, auth } from '../firebase';
 import { ref, push, onValue, remove } from 'firebase/database';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { firebaseUsageMonitor } from '../utils/firebaseUsageMonitor.js';
-import { compressImageFile } from '../utils/imageCompression';
 
 const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -216,8 +215,7 @@ const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
     setSelectedFile(event.target.files[0]);
   };
 
-  import { compressImageFile } from '../utils/imageCompression';
-
+  
 const handleUpload = async () => {
   if (selectedFile) {
     // Only compress if file is >200KB, else upload as-is
