@@ -4,6 +4,7 @@ import { database, auth } from '../firebase';
 import { ref, push, onValue, remove } from 'firebase/database';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { firebaseUsageMonitor } from '../utils/firebaseUsageMonitor.js';
+import { compressImageFile } from '../utils/imageCompression';
 
 const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -215,8 +216,26 @@ const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
     setSelectedFile(event.target.files[0]);
   };
 
-  const handleUpload = () => {
-    if (selectedFile) {
+  import { compressImageFile } from '../utils/imageCompression';
+
+const handleUpload = async () => {
+  if (selectedFile) {
+    // Only compress if file is >200KB, else upload as-is
+    if (selectedFile.size > 200 * 1024) {
+      try {
+        const compressedDataUrl = await compressImageFile(selectedFile, {
+          maxWidth: 600,
+          maxHeight: 600,
+          quality: 0.82
+        });
+        const templatesRef = ref(database, 'templates');
+        push(templatesRef, { name: selectedFile.name, url: compressedDataUrl });
+        alert('Template auto-compressed and uploaded successfully!');
+        setSelectedFile(null);
+      } catch (err) {
+        alert('Failed to compress image: ' + err.message);
+      }
+    } else {
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64Image = event.target.result;
@@ -227,7 +246,8 @@ const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
       };
       reader.readAsDataURL(selectedFile);
     }
-  };
+  }
+};
 
   const handleDelete = (templateId) => {
     const templateRef = ref(database, `templates/${templateId}`);
