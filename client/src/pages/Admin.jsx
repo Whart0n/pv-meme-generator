@@ -152,10 +152,10 @@ const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-2 px-2">Date</th>
-                    <th className="text-right py-2 px-2">Reads</th>
-                    <th className="text-right py-2 px-2">Writes</th>
-                    <th className="text-right py-2 px-2">Bandwidth</th>
+                    <th className="text-left py-2 px-2 text-gray-700 dark:text-gray-200">Date</th>
+                    <th className="text-right py-2 px-2 text-gray-700 dark:text-gray-200">Reads</th>
+                    <th className="text-right py-2 px-2 text-gray-700 dark:text-gray-200">Writes</th>
+                    <th className="text-right py-2 px-2 text-gray-700 dark:text-gray-200">Bandwidth</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -185,8 +185,8 @@ const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
         </div>
       )}
       
-      <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-        <p>Budget: $25/month (~35GB). Current usage: {usageData.totalBandwidthFormatted}.</p>
+      <div className="mt-4 text-sm text-gray-700 dark:text-gray-200">
+        <p>Budget: <span className="font-medium">$25/month (~35GB)</span>. Current usage: <span className="font-semibold">{usageData.totalBandwidthFormatted}</span>.</p>
         <p className="mt-1">Monitor this panel to ensure you stay within your Firebase plan limits.</p>
       </div>
     </div>
