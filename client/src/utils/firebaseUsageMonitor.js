@@ -181,12 +181,31 @@ export const firebaseUsageMonitor = {
       }
     }
     
+    // Calculate current calendar month totals
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthlyTotals = data.dailyUsage.reduce((acc, day) => {
+      const dayDate = new Date(day.date);
+      if (dayDate >= monthStart) {
+        acc.reads += day.reads;
+        acc.writes += day.writes;
+        acc.bandwidth += day.bandwidth;
+      }
+      return acc;
+    }, { reads: 0, writes: 0, bandwidth: 0 });
+
     return {
       ...data,
       totalBandwidthFormatted: formatBytes(totalBandwidth),
       dailyAverages,
       dailyAveragesFormatted: {
         bandwidth: formatBytes(dailyAverages.bandwidth)
+      },
+      monthlyTotals,
+      monthlyTotalsFormatted: {
+        reads: monthlyTotals.reads.toLocaleString(),
+        writes: monthlyTotals.writes.toLocaleString(),
+        bandwidth: formatBytes(monthlyTotals.bandwidth)
       },
       projection: {
         daysUntilLimit,

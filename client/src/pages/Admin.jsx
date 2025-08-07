@@ -15,6 +15,7 @@ const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [usageData, setUsageData] = useState(firebaseUsageMonitor.getFormattedUsage());
   const [usageExpanded, setUsageExpanded] = useState(false);
+  const [usagePeriod, setUsagePeriod] = useState('month'); // 'day', 'week', 'month'
 
   // Update usage data periodically
   useEffect(() => {
@@ -45,25 +46,79 @@ const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
         </button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-          <div className="text-sm text-blue-800 dark:text-blue-200">Reads</div>
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-300">{usageData.reads.toLocaleString()}</div>
-          <div className="text-xs text-blue-600 dark:text-blue-400">Daily avg: {usageData.dailyAverages.reads.toLocaleString()}</div>
-        </div>
-        
-        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-          <div className="text-sm text-green-800 dark:text-green-200">Writes</div>
-          <div className="text-2xl font-bold text-green-600 dark:text-green-300">{usageData.writes.toLocaleString()}</div>
-          <div className="text-xs text-green-600 dark:text-green-400">Daily avg: {usageData.dailyAverages.writes.toLocaleString()}</div>
-        </div>
-        
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-          <div className="text-sm text-purple-800 dark:text-purple-200">Bandwidth</div>
-          <div className="text-2xl font-bold text-purple-600 dark:text-purple-300">{usageData.totalBandwidthFormatted}</div>
-          <div className="text-xs text-purple-600 dark:text-purple-400">Daily avg: {usageData.dailyAveragesFormatted.bandwidth}</div>
-        </div>
+      {/* Usage Period Toggle */}
+      <div className="flex gap-2 mb-4">
+        {['day', 'week', 'month'].map(period => (
+          <button
+            key={period}
+            className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${usagePeriod === period ? 'bg-blue-600 text-white border-blue-700' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'}`}
+            onClick={() => setUsagePeriod(period)}
+          >
+            {period === 'day' ? 'Today' : period === 'week' ? 'This Week' : 'This Month'}
+          </button>
+        ))}
       </div>
+      {/* Usage Summary for Selected Period */}
+      {(() => {
+        // Calculate period totals
+        const now = new Date();
+        let periodTotals = { reads: 0, writes: 0, bandwidth: 0 };
+        let label = '';
+        if (usagePeriod === 'day') {
+          const today = now.toDateString();
+          const todayRecord = usageData.dailyUsage.find(day => day.date === today);
+          if (todayRecord) periodTotals = todayRecord;
+          label = 'Today';
+        } else if (usagePeriod === 'week') {
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+          usageData.dailyUsage.forEach(day => {
+            const dayDate = new Date(day.date);
+            if (dayDate >= startOfWeek) {
+              periodTotals.reads += day.reads;
+              periodTotals.writes += day.writes;
+              periodTotals.bandwidth += day.bandwidth;
+            }
+          });
+          label = 'This Week';
+        } else {
+          // month
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          usageData.dailyUsage.forEach(day => {
+            const dayDate = new Date(day.date);
+            if (dayDate >= monthStart) {
+              periodTotals.reads += day.reads;
+              periodTotals.writes += day.writes;
+              periodTotals.bandwidth += day.bandwidth;
+            }
+          });
+          label = 'This Month';
+        }
+        // Format bandwidth
+        const formatBytes = (bytes) => {
+          if (bytes === 0) return '0 Bytes';
+          const k = 1024;
+          const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        };
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg">
+              <div className="text-xs text-blue-900 dark:text-blue-100">Reads ({label})</div>
+              <div className="text-lg font-semibold text-blue-700 dark:text-blue-200">{periodTotals.reads.toLocaleString()}</div>
+            </div>
+            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-lg">
+              <div className="text-xs text-green-900 dark:text-green-100">Writes ({label})</div>
+              <div className="text-lg font-semibold text-green-700 dark:text-green-200">{periodTotals.writes.toLocaleString()}</div>
+            </div>
+            <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg">
+              <div className="text-xs text-purple-900 dark:text-purple-100">Bandwidth ({label})</div>
+              <div className="text-lg font-semibold text-purple-700 dark:text-purple-200">{formatBytes(periodTotals.bandwidth)}</div>
+            </div>
+          </div>
+        );
+      })()}
       
       {/* Projection Display */}
       {usageData.projection && usageData.projection.daysUntilLimit !== null && (
