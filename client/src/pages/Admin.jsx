@@ -4,6 +4,7 @@ import { database, auth } from '../firebase';
 import { ref, push, onValue, remove } from 'firebase/database';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { firebaseUsageMonitor } from '../utils/firebaseUsageMonitor.js';
+import { compressImageFile } from '../utils/imageCompression.js';
 
 const Admin = ({ showOnlyLogin = false, onLoginSuccess }) => {
   const [selectedFile, setSelectedFile] = useState(null);
