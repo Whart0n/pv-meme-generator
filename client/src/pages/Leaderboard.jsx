@@ -66,25 +66,46 @@ export default function Leaderboard() {
   }, [loadMemes]);
 
   const handleUpvote = async (memeId) => {
+    console.log('Leaderboard: handleUpvote called for meme:', memeId);
+    console.log('Session ID:', sessionId);
+    
     setRateLimitError('');
     const now = Date.now();
     const lastUpvote = Number(localStorage.getItem('pv-meme-last-upvote') || 0);
+    
     if (now - lastUpvote < 5000) {
+      console.log('Rate limit hit, last upvote was', (now - lastUpvote) / 1000, 'seconds ago');
       setRateLimitError('You can only upvote once every 5 seconds. Please wait before upvoting again.');
       return;
     }
-    await upvoteMeme(memeId, sessionId);
-    localStorage.setItem('pv-meme-last-upvote', now.toString());
-    setAllMemes(memes => memes.map(m => {
-      if (m.id === memeId) {
-        return {
-          ...m,
-          upvotes: (m.upvotes || 0) + 1,
-          upvotedBy: { ...(m.upvotedBy || {}), [sessionId]: true },
-        };
-      }
-      return m;
-    }));
+    
+    console.log('Calling upvoteMeme API function');
+    try {
+      const result = await upvoteMeme(memeId, sessionId);
+      console.log('upvoteMeme API result:', result);
+      
+      localStorage.setItem('pv-meme-last-upvote', now.toString());
+      console.log('Updated last upvote timestamp in localStorage');
+      
+      setAllMemes(memes => {
+        console.log('Updating UI state with new upvote');
+        return memes.map(m => {
+          if (m.id === memeId) {
+            const updatedMeme = {
+              ...m,
+              upvotes: (m.upvotes || 0) + 1,
+              upvotedBy: { ...(m.upvotedBy || {}), [sessionId]: true },
+            };
+            console.log('Updated meme in UI:', updatedMeme);
+            return updatedMeme;
+          }
+          return m;
+        });
+      });
+    } catch (error) {
+      console.error('Error in handleUpvote:', error);
+      setError('Failed to upvote. Please try again.');
+    }
   };
 
   const handleDelete = async (memeId) => {

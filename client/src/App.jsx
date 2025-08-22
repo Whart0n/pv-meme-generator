@@ -13,6 +13,8 @@ const Home = React.lazy(() => import('./pages/Home'));
 const Admin = React.lazy(() => import('./pages/Admin'));
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
 const HeroOrZero = React.lazy(() => import('./pages/HeroOrZero'));
+const TokenViewer = React.lazy(() => import('./pages/TokenViewer'));
+const TokenImage = React.lazy(() => import('./pages/TokenImage'));
 
 function AppContent() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -28,6 +30,7 @@ function AppContent() {
           <Link to="/" className="hover:underline font-semibold">Home</Link>
           <Link to="/leaderboard" className="hover:underline">Leaderboard</Link>
           <Link to="/hero-or-zero" className="hover:underline">Hero or Zero</Link>
+          <Link to="/token-viewer" className="hover:underline">Token Viewer</Link>
         </div>
         <div className="flex items-center gap-4">
           {currentUser ? (
@@ -77,6 +80,8 @@ function AppContent() {
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} onMouseEnter={() => setShowAdminLogin(true)} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/hero-or-zero" element={<HeroOrZero />} />
+          <Route path="/token-viewer" element={<TokenViewer />} />
+          <Route path="/token/:type/:id" element={<TokenImage />} />
           <Route path="/" element={<Home />} />
         </Routes>
       </Suspense>

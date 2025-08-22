@@ -1,7 +1,7 @@
 {
   "rules": {
-    ".read": "auth != null || !data.exists() || data.child('public').val() === true",
-    ".write": false,
+    ".read": true,
+    ".write": true,
     
     "templates": {
       ".read": true,
@@ -11,27 +11,8 @@
     
     "metahero-nfts": {
       ".read": true,
-      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
-      ".indexOn": ["elo_score"],
-      "$nftId": {
-        ".read": true,
-        ".write": true,
-        "elo_score": { ".validate": "newData.isNumber()" },
-        "wins": { ".validate": "newData.isNumber()" },
-        "losses": { ".validate": "newData.isNumber()" },
-        "total_votes": { ".validate": "newData.isNumber()" }
-      }
-    },
-    
-    "voting-sessions": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
       ".write": true,
-      ".indexOn": ["timestamp"]
-    },
-    
-    "user-sessions": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
-      ".write": true
+      ".indexOn": ["elo_score"]
     },
     
     "memes": {
@@ -40,22 +21,9 @@
       ".indexOn": ["upvotes", "templateId", "createdAt"]
     },
     
-    "users": {
-      ".read": "auth != null",
-      ".write": "auth != null && (!data.exists() || !data.hasChildren())",
-      "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
-      }
-    },
-    
     "templateUsage": {
       ".read": true,
-      ".write": true,
-      "$templateId": {
-        "lastUsed": {".validate": "newData.isNumber()"},
-        "usageCount": {".validate": "newData.isNumber()"}
-      }
+      ".write": true
     },
     
     "admin": {
@@ -65,10 +33,7 @@
     
     "admins": {
       ".read": "auth != null",
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
-      "$uid": {
-        ".validate": "newData.isBoolean()"
-      }
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
     }
   }
 }

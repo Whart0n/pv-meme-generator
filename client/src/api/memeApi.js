@@ -35,16 +35,39 @@ export async function saveMeme(meme) {
  * @param {string} voterId
  */
 export async function upvoteMeme(memeId, voterId) {
-  const memeRef = ref(database, `memes/${memeId}`);
-  const snap = await get(memeRef);
-  if (!snap.exists()) return false;
-  const meme = snap.val();
-  if (meme.upvotedBy && meme.upvotedBy[voterId]) return false;
-  await update(memeRef, {
-    upvotes: (meme.upvotes || 0) + 1,
-    [`upvotedBy/${voterId}`]: true,
-  });
-  return true;
+  console.log('Upvoting meme:', memeId, 'by voter:', voterId);
+  try {
+    const memeRef = ref(database, `memes/${memeId}`);
+    console.log('Meme ref created:', memeRef);
+    
+    const snap = await get(memeRef);
+    console.log('Meme snapshot exists:', snap.exists(), 'Key:', snap.key);
+    
+    if (!snap.exists()) {
+      console.error('Meme does not exist:', memeId);
+      return false;
+    }
+    
+    const meme = snap.val();
+    console.log('Current meme data:', meme);
+    
+    if (meme.upvotedBy && meme.upvotedBy[voterId]) {
+      console.log('Already upvoted by this voter');
+      return false;
+    }
+    
+    console.log('Updating meme with upvote');
+    await update(memeRef, {
+      upvotes: (meme.upvotes || 0) + 1,
+      [`upvotedBy/${voterId}`]: true,
+    });
+    
+    console.log('Upvote successful');
+    return true;
+  } catch (error) {
+    console.error('Error upvoting meme:', error);
+    throw error;
+  }
 }
 
 /**
