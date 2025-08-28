@@ -5,6 +5,7 @@ import PreloadManager from './components/PreloadManager.jsx';
 import AuthModal from './components/AuthModal.jsx';
 import UserProfile from './components/UserProfile.jsx';
 import AdminRoute from './components/AdminRoute.jsx';
+import DonationModal from './components/DonationModal.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import './App.css';
 
@@ -19,6 +20,7 @@ const TokenImage = React.lazy(() => import('./pages/TokenImage'));
 function AppContent() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [donationModalOpen, setDonationModalOpen] = useState(false);
   const { currentUser, isAdminUser } = useAuth();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
 
@@ -33,6 +35,12 @@ function AppContent() {
           <Link to="/token-viewer" className="hover:underline">Token Viewer</Link>
         </div>
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => setDonationModalOpen(true)}
+            className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-3 py-1 rounded-full transition-colors font-medium"
+          >
+            Donate
+          </button>
           {currentUser ? (
             <button
               onClick={() => setProfileModalOpen(true)}
@@ -67,6 +75,7 @@ function AppContent() {
       
       {authModalOpen && <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />}
       {profileModalOpen && <UserProfile onClose={() => setProfileModalOpen(false)} />}
+      <DonationModal isOpen={donationModalOpen} onClose={() => setDonationModalOpen(false)} />
       
       <Suspense fallback={
         <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
